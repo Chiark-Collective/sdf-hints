@@ -62,6 +62,14 @@ export interface SeedPropagationConstraint extends BaseConstraint {
   confidences: number[]
 }
 
+export interface MLImportConstraint extends BaseConstraint {
+  type: 'ml_import'
+  sourceFile: string
+  sourceClass: string | number
+  pointIndices: number[]
+  confidences: number[]
+}
+
 export type Constraint =
   | BoxConstraint
   | SphereConstraint
@@ -69,6 +77,7 @@ export type Constraint =
   | CylinderConstraint
   | PaintedRegionConstraint
   | SeedPropagationConstraint
+  | MLImportConstraint
 
 interface LabelAction {
   id: string

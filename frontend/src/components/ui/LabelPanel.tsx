@@ -10,10 +10,13 @@ import { useProjectStore, type LabelType } from '../../stores/projectStore'
 import { useLabelStore, type Constraint } from '../../stores/labelStore'
 import { useSliceStore } from '../../stores/sliceStore'
 import { useBrushStore } from '../../stores/brushStore'
+import { useSeedStore } from '../../stores/seedStore'
 import { useConstraintSync } from '../../hooks/useConstraintSync'
 import { PrimitiveMode } from '../modes/PrimitiveMode'
 import { SliceMode } from '../modes/SliceMode'
 import { BrushMode } from '../modes/BrushMode'
+import { SeedMode } from '../modes/SeedMode'
+import { MLImportMode } from '../modes/MLImportMode'
 import { generateSamples, exportParquet } from '../../services/api'
 
 const labelOptions: { value: LabelType; label: string; description: string; color: string }[] = [
@@ -64,6 +67,35 @@ function BrushModePanel() {
   return (
     <div className="border-b border-gray-800">
       <BrushMode depthAware={depthAware} setDepthAware={setDepthAware} />
+    </div>
+  )
+}
+
+// Wrapper for SeedMode with store integration
+function SeedModePanel({ projectId }: { projectId: string }) {
+  const seeds = useSeedStore((s) => s.seeds)
+  const addSeed = useSeedStore((s) => s.addSeed)
+  const removeSeed = useSeedStore((s) => s.removeSeed)
+  const clearSeeds = useSeedStore((s) => s.clearSeeds)
+
+  return (
+    <div className="border-b border-gray-800">
+      <SeedMode
+        projectId={projectId}
+        seeds={seeds}
+        onAddSeed={(pos) => addSeed(pos)}
+        onRemoveSeed={removeSeed}
+        onClearSeeds={clearSeeds}
+      />
+    </div>
+  )
+}
+
+// Wrapper for MLImportMode
+function MLImportModePanel({ projectId }: { projectId: string }) {
+  return (
+    <div className="border-b border-gray-800">
+      <MLImportMode projectId={projectId} />
     </div>
   )
 }
@@ -139,6 +171,14 @@ export function LabelPanel() {
 
       {mode === 'brush' && (
         <BrushModePanel />
+      )}
+
+      {mode === 'seed' && currentProjectId && (
+        <SeedModePanel projectId={currentProjectId} />
+      )}
+
+      {mode === 'import' && currentProjectId && (
+        <MLImportModePanel projectId={currentProjectId} />
       )}
 
       {/* Constraints list */}

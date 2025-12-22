@@ -10,7 +10,9 @@ import { PointCloudViewer } from './components/canvas/PointCloudViewer'
 import { SelectionVolume } from './components/canvas/SelectionVolume'
 import { PrimitivePlacer } from './components/canvas/PrimitivePlacer'
 import { BrushPainter } from './components/canvas/BrushPainter'
+import { SeedPlacer } from './components/canvas/SeedPlacer'
 import { useBrushStore } from './stores/brushStore'
+import { useSeedStore } from './stores/seedStore'
 import { Toolbar } from './components/ui/Toolbar'
 import { ProjectPanel } from './components/ui/ProjectPanel'
 import { LabelPanel } from './components/ui/LabelPanel'
@@ -22,6 +24,9 @@ function Scene() {
   const projectId = useProjectStore((s) => s.currentProjectId)
   const mode = useProjectStore((s) => s.mode)
   const depthAware = useBrushStore((s) => s.depthAware)
+  const seeds = useSeedStore((s) => s.seeds)
+  const addSeed = useSeedStore((s) => s.addSeed)
+  const propagationRadius = useSeedStore((s) => s.propagationRadius)
 
   // Disable orbit controls when using interactive modes
   const orbitEnabled = mode === 'orbit'
@@ -51,6 +56,16 @@ function Scene() {
           projectId={projectId}
           points={null}
           depthAware={depthAware}
+        />
+      )}
+
+      {/* Seed placer (when in seed mode) */}
+      {projectId && (
+        <SeedPlacer
+          projectId={projectId}
+          seeds={seeds}
+          onAddSeed={addSeed}
+          propagationRadius={propagationRadius}
         />
       )}
 
