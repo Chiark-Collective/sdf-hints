@@ -18,13 +18,13 @@ import * as Tooltip from '@radix-ui/react-tooltip'
 import { useProjectStore, type InteractionMode } from '../../stores/projectStore'
 import { useLabelStore } from '../../stores/labelStore'
 
-const modes: { value: InteractionMode; icon: typeof CursorArrowIcon; label: string; shortcut: string }[] = [
-  { value: 'orbit', icon: CursorArrowIcon, label: 'Navigate', shortcut: 'Esc' },
-  { value: 'primitive', icon: BoxIcon, label: 'Place Primitives', shortcut: 'P' },
-  { value: 'slice', icon: ShadowIcon, label: 'Slice Paint', shortcut: 'S' },
-  { value: 'brush', icon: CircleIcon, label: '3D Brush', shortcut: 'B' },
-  { value: 'seed', icon: MixIcon, label: 'Seed & Propagate', shortcut: 'G' },
-  { value: 'import', icon: UploadIcon, label: 'Import ML', shortcut: 'I' },
+const modes: { value: InteractionMode; icon: typeof CursorArrowIcon; label: string; shortcut: string; ariaLabel: string }[] = [
+  { value: 'orbit', icon: CursorArrowIcon, label: 'Navigate', shortcut: 'Esc', ariaLabel: 'Orbit' },
+  { value: 'primitive', icon: BoxIcon, label: 'Place Primitives', shortcut: 'P', ariaLabel: 'Primitive' },
+  { value: 'slice', icon: ShadowIcon, label: 'Slice Paint', shortcut: 'S', ariaLabel: 'Slice' },
+  { value: 'brush', icon: CircleIcon, label: '3D Brush', shortcut: 'B', ariaLabel: 'Brush' },
+  { value: 'seed', icon: MixIcon, label: 'Seed & Propagate', shortcut: 'G', ariaLabel: 'Seed' },
+  { value: 'import', icon: UploadIcon, label: 'Import ML', shortcut: 'I', ariaLabel: 'Import' },
 ]
 
 export function Toolbar() {
@@ -67,11 +67,13 @@ export function Toolbar() {
           onValueChange={(value) => value && setMode(value as InteractionMode)}
           className="flex gap-1"
         >
-          {modes.map(({ value, icon: Icon, label, shortcut }) => (
+          {modes.map(({ value, icon: Icon, label, shortcut, ariaLabel }) => (
             <Tooltip.Root key={value}>
               <Tooltip.Trigger asChild>
                 <ToggleGroup.Item
                   value={value}
+                  aria-label={ariaLabel}
+                  data-testid={`mode-${ariaLabel.toLowerCase()}`}
                   className={`
                     p-2 rounded transition-colors
                     ${mode === value

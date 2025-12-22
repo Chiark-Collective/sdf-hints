@@ -28,7 +28,7 @@ test.describe('Point Cloud Upload', () => {
     await app.uploadFile(filePath)
 
     // Should show success toast
-    await expect(page.getByText('Point cloud uploaded')).toBeVisible({ timeout: 30000 })
+    await expect(page.getByText('Point cloud uploaded', { exact: true })).toBeVisible({ timeout: 30000 })
     await expect(page.getByText(/\d+ points loaded/)).toBeVisible()
   })
 
@@ -54,7 +54,7 @@ test.describe('Point Cloud Upload', () => {
     await app.uploadFile(filePath)
 
     // Wait for upload to complete
-    await expect(page.getByText('Point cloud uploaded')).toBeVisible({ timeout: 30000 })
+    await expect(page.getByText('Point cloud uploaded', { exact: true })).toBeVisible({ timeout: 30000 })
 
     // Status bar should show point count
     await expect(app.statusBar).toContainText(/\d+ points/)
@@ -65,7 +65,7 @@ test.describe('Point Cloud Upload', () => {
     await app.uploadFile(filePath)
 
     // Wait for upload to complete
-    await expect(page.getByText('Point cloud uploaded')).toBeVisible({ timeout: 30000 })
+    await expect(page.getByText('Point cloud uploaded', { exact: true })).toBeVisible({ timeout: 30000 })
 
     // Toolbar modes should be clickable
     await app.selectMode('Primitive')
@@ -129,7 +129,7 @@ test.describe('Multiple Uploads', () => {
     // Upload first file
     const file1 = createTestPointCloud(50)
     await app.uploadFile(file1)
-    await expect(page.getByText('Point cloud uploaded')).toBeVisible({ timeout: 30000 })
+    await expect(page.getByText('Point cloud uploaded', { exact: true })).toBeVisible({ timeout: 30000 })
 
     // Dismiss toast
     await app.dismissToast()
@@ -137,7 +137,7 @@ test.describe('Multiple Uploads', () => {
     // Upload second file
     const file2 = createTestPointCloud(100)
     await app.uploadFile(file2)
-    await expect(page.getByText('Point cloud uploaded')).toBeVisible({ timeout: 30000 })
+    await expect(page.getByText('Point cloud uploaded', { exact: true })).toBeVisible({ timeout: 30000 })
 
     // Should show new point count
     await expect(page.getByText(/100 points loaded/)).toBeVisible()

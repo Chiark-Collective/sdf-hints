@@ -25,21 +25,21 @@ test.describe('Complete Labeling Workflow', () => {
     // 3. Upload a point cloud
     const filePath = createTestPointCloud(200)
     await app.uploadFile(filePath)
-    await expect(page.getByText('Point cloud uploaded')).toBeVisible({ timeout: 30000 })
+    await expect(page.getByText('Point cloud uploaded', { exact: true })).toBeVisible({ timeout: 30000 })
 
     // 4. Verify point cloud info in status bar
     await expect(app.statusBar).toContainText(/\d+ points/)
 
     // 5. Switch to Primitive mode
     await app.selectMode('Primitive')
-    await expect(page.getByRole('button', { name: 'Primitive' })).toHaveClass(/bg-blue-600/)
+    await expect(app.getModeButton('Primitive')).toHaveClass(/bg-blue-600/)
 
     // 6. Check that canvas is rendered
     await expect(app.canvas).toBeVisible()
 
     // 7. Return to Orbit mode
     await page.keyboard.press('Escape')
-    await expect(page.getByRole('button', { name: 'Orbit' })).toHaveClass(/bg-blue-600/)
+    await expect(app.getModeButton('Orbit')).toHaveClass(/bg-blue-600/)
   })
 
   test('should handle keyboard navigation throughout workflow', async ({ app, page }) => {
@@ -51,26 +51,26 @@ test.describe('Complete Labeling Workflow', () => {
 
     // Use keyboard to switch modes
     await page.keyboard.press('p') // Primitive
-    await expect(page.getByRole('button', { name: 'Primitive' })).toHaveClass(/bg-blue-600/)
+    await expect(app.getModeButton('Primitive')).toHaveClass(/bg-blue-600/)
 
     await page.keyboard.press('s') // Slice
-    await expect(page.getByRole('button', { name: 'Slice' })).toHaveClass(/bg-blue-600/)
+    await expect(app.getModeButton('Slice')).toHaveClass(/bg-blue-600/)
 
     await page.keyboard.press('b') // Brush
-    await expect(page.getByRole('button', { name: 'Brush' })).toHaveClass(/bg-blue-600/)
+    await expect(app.getModeButton('Brush')).toHaveClass(/bg-blue-600/)
 
     await page.keyboard.press('g') // Seed
-    await expect(page.getByRole('button', { name: 'Seed' })).toHaveClass(/bg-blue-600/)
+    await expect(app.getModeButton('Seed')).toHaveClass(/bg-blue-600/)
 
     await page.keyboard.press('Escape') // Back to Orbit
-    await expect(page.getByRole('button', { name: 'Orbit' })).toHaveClass(/bg-blue-600/)
+    await expect(app.getModeButton('Orbit')).toHaveClass(/bg-blue-600/)
 
     // Cycle labels with Tab
     await page.keyboard.press('Tab')
-    await expect(page.getByRole('button', { name: 'Empty' })).toHaveClass(/ring-2/)
+    await expect(page.getByRole('radio', { name: 'Empty' })).toHaveClass(/ring-2/)
 
     await page.keyboard.press('Tab')
-    await expect(page.getByRole('button', { name: 'Surface' })).toHaveClass(/ring-2/)
+    await expect(page.getByRole('radio', { name: 'Surface' })).toHaveClass(/ring-2/)
   })
 })
 
@@ -102,7 +102,7 @@ test.describe('Error Recovery', () => {
     await app.selectMode('Orbit')
 
     // App should still be responsive
-    await expect(page.getByRole('button', { name: 'Orbit' })).toHaveClass(/bg-blue-600/)
+    await expect(app.getModeButton('Orbit')).toHaveClass(/bg-blue-600/)
     await expect(app.canvas).toBeVisible()
   })
 })
@@ -180,7 +180,7 @@ test.describe('3D Canvas Interaction', () => {
     // Upload a point cloud first
     const filePath = createTestPointCloud(100)
     await app.uploadFile(filePath)
-    await expect(page.getByText('Point cloud uploaded')).toBeVisible({ timeout: 30000 })
+    await expect(page.getByText('Point cloud uploaded', { exact: true })).toBeVisible({ timeout: 30000 })
 
     // Switch to Primitive mode
     await app.selectMode('Primitive')
@@ -193,6 +193,6 @@ test.describe('3D Canvas Interaction', () => {
     }
 
     // App should still be responsive after click
-    await expect(page.getByRole('button', { name: 'Primitive' })).toHaveClass(/bg-blue-600/)
+    await expect(app.getModeButton('Primitive')).toHaveClass(/bg-blue-600/)
   })
 })

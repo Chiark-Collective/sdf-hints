@@ -30,8 +30,8 @@ export default defineConfig({
   // Start frontend dev server
   webServer: [
     {
-      command: 'cd ../backend && uv run uvicorn sdf_labeler_api.app:app --host 0.0.0.0 --port 8000',
-      url: 'http://localhost:8000/health',
+      command: 'cd ../backend && uv run uvicorn sdf_labeler_api.app:app --host 0.0.0.0 --port 8001',
+      url: 'http://localhost:8001/health',
       reuseExistingServer: !process.env.CI,
       timeout: 30000,
     },

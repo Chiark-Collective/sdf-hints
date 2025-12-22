@@ -142,10 +142,11 @@ export function LabelPanel() {
             <ToggleGroup.Item
               key={value}
               value={value}
+              aria-label={label}
               className={`
                 flex items-center gap-3 p-3 rounded-lg border transition-colors text-left
                 ${activeLabel === value
-                  ? `border-${value} bg-${value}/10`
+                  ? `border-${value} bg-${value}/10 ring-2 ring-${value}`
                   : 'border-gray-700 hover:border-gray-600'
                 }
               `}

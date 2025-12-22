@@ -83,7 +83,11 @@ export class AppHelper {
   }
 
   async selectMode(mode: 'Orbit' | 'Primitive' | 'Slice' | 'Brush' | 'Seed' | 'Import') {
-    await this.toolbar.getByText(mode, { exact: true }).click()
+    await this.page.locator(`[data-testid="mode-${mode.toLowerCase()}"]`).click()
+  }
+
+  getModeButton(mode: 'Orbit' | 'Primitive' | 'Slice' | 'Brush' | 'Seed' | 'Import'): Locator {
+    return this.page.locator(`[data-testid="mode-${mode.toLowerCase()}"]`)
   }
 
   async getActiveMode(): Promise<string> {
@@ -126,9 +130,9 @@ export class AppHelper {
     return (await activeButton.textContent()) || ''
   }
 
-  // 3D Canvas
+  // 3D Canvas - specifically the Three.js canvas
   get canvas(): Locator {
-    return this.page.locator('canvas')
+    return this.page.locator('canvas[data-engine^="three.js"]')
   }
 
   async clickCanvas(x: number, y: number) {

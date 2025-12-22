@@ -22,7 +22,7 @@ help:
 	@echo ""
 	@echo "$(GREEN)Development:$(RESET)"
 	@echo "  make dev              Run both backend and frontend"
-	@echo "  make dev-backend      Run backend only (port 8000)"
+	@echo "  make dev-backend      Run backend only (port 8001)"
 	@echo "  make dev-frontend     Run frontend only (port 5173)"
 	@echo ""
 	@echo "$(GREEN)Testing:$(RESET)"
@@ -59,12 +59,12 @@ install-frontend:
 
 dev:
 	@echo "$(CYAN)Starting development servers...$(RESET)"
-	@echo "$(YELLOW)Backend: http://localhost:8000$(RESET)"
+	@echo "$(YELLOW)Backend: http://localhost:8001$(RESET)"
 	@echo "$(YELLOW)Frontend: http://localhost:5173$(RESET)"
 	@$(MAKE) -j2 dev-backend dev-frontend
 
 dev-backend:
-	cd backend && uv run uvicorn sdf_labeler_api.app:app --reload --host 0.0.0.0 --port 8000
+	cd backend && uv run uvicorn sdf_labeler_api.app:app --reload --host 0.0.0.0 --port 8001
 
 dev-frontend:
 	cd frontend && npm run dev
