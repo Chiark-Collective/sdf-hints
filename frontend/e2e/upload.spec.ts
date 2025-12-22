@@ -9,6 +9,8 @@ test.describe('Point Cloud Upload', () => {
     // Create a project first
     await app.createProject(`Upload Test ${Date.now()}`)
     await app.dismissToast()
+    // Switch to upload tab (default is now Demo Data)
+    await app.switchToUploadTab()
   })
 
   test.afterAll(() => {
@@ -102,6 +104,8 @@ test.describe('Upload Error Handling', () => {
     await app.goto()
     await app.createProject(`Error Test ${Date.now()}`)
     await app.dismissToast()
+    // Switch to upload tab (default is now Demo Data)
+    await app.switchToUploadTab()
   })
 
   test('should show error toast on upload failure', async ({ app, page }) => {
@@ -125,6 +129,8 @@ test.describe('Multiple Uploads', () => {
     await app.goto()
     await app.createProject(`Multi Upload ${Date.now()}`)
     await app.dismissToast()
+    // Switch to upload tab (default is now Demo Data)
+    await app.switchToUploadTab()
   })
 
   test.afterAll(() => {

@@ -35,7 +35,8 @@ export class AppHelper {
   }
 
   get createProjectButton(): Locator {
-    return this.projectPanel.getByRole('button').filter({ has: this.page.locator('svg') }).first()
+    // Target the + button specifically (it's in the header's right side, after the "Projects" label)
+    return this.projectPanel.locator('[data-testid="create-project-button"]')
   }
 
   get projectList(): Locator {
@@ -109,7 +110,17 @@ export class AppHelper {
     return this.page.locator('text=Drop point cloud here').locator('..')
   }
 
+  async switchToUploadTab() {
+    // Click the "Upload File" tab if it exists and is not already active
+    const uploadTab = this.page.locator('button:has-text("Upload File")')
+    if (await uploadTab.isVisible()) {
+      await uploadTab.click()
+    }
+  }
+
   async uploadFile(filePath: string) {
+    // Make sure we're on the upload tab
+    await this.switchToUploadTab()
     const fileInput = this.page.locator('input[type="file"]')
     await fileInput.setInputFiles(filePath)
     // Wait for upload to complete (progress bar disappears)

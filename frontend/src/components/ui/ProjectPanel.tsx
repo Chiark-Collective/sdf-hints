@@ -233,7 +233,10 @@ function CreateProjectDialog() {
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger asChild>
-        <button className="p-1 text-gray-400 hover:text-white hover:bg-gray-800 rounded">
+        <button
+          data-testid="create-project-button"
+          className="p-1 text-gray-400 hover:text-white hover:bg-gray-800 rounded"
+        >
           <PlusIcon className="w-4 h-4" />
         </button>
       </Dialog.Trigger>

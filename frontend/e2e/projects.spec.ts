@@ -41,6 +41,9 @@ test.describe('Project Management', () => {
     const projectName = `Upload Test ${Date.now()}`
     await app.createProject(projectName)
 
+    // Switch to upload tab (default is now Demo Data)
+    await app.switchToUploadTab()
+
     // Upload section should appear
     await expect(page.getByText('Drop point cloud here')).toBeVisible()
     await expect(page.getByText('or browse files')).toBeVisible()
