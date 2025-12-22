@@ -2,7 +2,7 @@
 # ABOUTME: Provides commands for development, testing, and running the application
 
 .PHONY: help install install-backend install-frontend dev dev-backend dev-frontend \
-        test test-backend test-frontend lint format clean
+        test test-backend test-frontend test-e2e test-e2e-headed lint format clean
 
 SHELL := /bin/bash
 
@@ -26,9 +26,11 @@ help:
 	@echo "  make dev-frontend     Run frontend only (port 5173)"
 	@echo ""
 	@echo "$(GREEN)Testing:$(RESET)"
-	@echo "  make test             Run all tests"
+	@echo "  make test             Run all unit tests"
 	@echo "  make test-backend     Run backend tests"
-	@echo "  make test-frontend    Run frontend tests"
+	@echo "  make test-frontend    Run frontend unit tests"
+	@echo "  make test-e2e         Run E2E tests (Playwright)"
+	@echo "  make test-e2e-headed  Run E2E tests with browser visible"
 	@echo ""
 	@echo "$(GREEN)Code Quality:$(RESET)"
 	@echo "  make lint             Run linters"
@@ -78,8 +80,20 @@ test-backend:
 	cd backend && uv run pytest tests/ -v
 
 test-frontend:
-	@echo "$(CYAN)Running frontend tests...$(RESET)"
-	cd frontend && npm test
+	@echo "$(CYAN)Running frontend unit tests...$(RESET)"
+	cd frontend && npm test -- --run
+
+test-e2e:
+	@echo "$(CYAN)Running E2E tests...$(RESET)"
+	cd frontend && npm run test:e2e
+
+test-e2e-headed:
+	@echo "$(CYAN)Running E2E tests with browser...$(RESET)"
+	cd frontend && npm run test:e2e:headed
+
+test-e2e-ui:
+	@echo "$(CYAN)Running E2E tests with UI...$(RESET)"
+	cd frontend && npm run test:e2e:ui
 
 # =============================================================================
 # Code Quality
