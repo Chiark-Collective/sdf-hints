@@ -231,12 +231,14 @@ class SamplingService:
             point[axis] = center[axis] + sign * half[axis]
 
             # Offset based on sign convention
+            # EMPTY (outside) = positive SDF, SOLID (inside) = negative SDF
             offset = near_band if constraint.sign == SignConvention.EMPTY else -near_band
             normal = np.zeros(3)
             normal[axis] = sign
             point = point + offset * normal
 
-            phi = offset if constraint.sign == SignConvention.EMPTY else -offset
+            # phi directly uses offset: EMPTY=+near_band, SOLID=-near_band
+            phi = offset
 
             samples.append(
                 TrainingSample(
@@ -274,9 +276,10 @@ class SamplingService:
             point = center + radius * direction
 
             # Offset based on sign
+            # EMPTY (outside) = positive SDF, SOLID (inside) = negative SDF
             offset = near_band if constraint.sign == SignConvention.EMPTY else -near_band
             point = point + offset * direction
-            phi = offset if constraint.sign == SignConvention.EMPTY else -offset
+            phi = offset
 
             samples.append(
                 TrainingSample(
