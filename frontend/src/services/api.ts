@@ -1,0 +1,240 @@
+// ABOUTME: API client for SDF Labeler backend
+// ABOUTME: Provides typed functions for all backend endpoints
+
+const API_BASE = '/v1'
+
+// Types matching backend models
+export interface ProjectCreate {
+  name: string
+  description?: string
+  config?: ProjectConfig
+}
+
+export interface ProjectConfig {
+  near_band?: number
+  tangential_jitter?: number
+  tsdf_trunc?: number
+  surface_anchor_ratio?: number
+  far_field_ratio?: number
+  knn_neighbors?: number
+  normal_orientation?: 'mst' | 'visibility' | 'mixed'
+  units?: 'meters' | 'millimeters' | 'feet'
+}
+
+export interface Project {
+  id: string
+  name: string
+  description?: string
+  config: ProjectConfig
+  created_at: string
+  updated_at: string
+  point_cloud_id?: string
+  bounds_low?: [number, number, number]
+  bounds_high?: [number, number, number]
+  constraint_count: number
+  sample_count: number
+}
+
+export interface PointCloudUploadResponse {
+  id: string
+  filename: string
+  point_count: number
+  has_normals: boolean
+  bounds_low: [number, number, number]
+  bounds_high: [number, number, number]
+  format: string
+}
+
+export interface PointCloudStats {
+  point_count: number
+  has_normals: boolean
+  bounds_low: [number, number, number]
+  bounds_high: [number, number, number]
+  centroid: [number, number, number]
+  estimated_density: number
+  octree_depth: number
+  octree_node_count: number
+  lod_levels: number
+}
+
+export interface OctreeNodeInfo {
+  node_id: string
+  level: number
+  bounds_low: [number, number, number]
+  bounds_high: [number, number, number]
+  point_count: number
+  children: string[]
+}
+
+export interface OctreeMetadata {
+  root_id: string
+  bounds_low: [number, number, number]
+  bounds_high: [number, number, number]
+  total_points: number
+  max_depth: number
+  node_count: number
+  nodes: Record<string, OctreeNodeInfo>
+}
+
+export interface TileData {
+  node_id: string
+  point_count: number
+  positions: number[]
+  normals?: number[]
+  labels?: number[]
+}
+
+export interface SampleGenerationRequest {
+  total_samples?: number
+  include_surface?: boolean
+  far_direction?: 'outward' | 'inward' | 'bidirectional'
+  apply_clipping?: boolean
+  seed?: number
+}
+
+export interface SamplePreview {
+  surface_anchor_count: number
+  near_band_count: number
+  far_field_count: number
+  constraint_sample_count: number
+  total_count: number
+}
+
+// API functions
+async function request<T>(
+  endpoint: string,
+  options?: RequestInit
+): Promise<T> {
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+    ...options,
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Unknown error' }))
+    throw new Error(error.detail || `HTTP ${response.status}`)
+  }
+
+  return response.json()
+}
+
+// Project endpoints
+export async function createProject(data: ProjectCreate): Promise<Project> {
+  return request('/projects', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function listProjects(): Promise<{ projects: Project[]; total: number }> {
+  return request('/projects')
+}
+
+export async function getProject(projectId: string): Promise<Project> {
+  return request(`/projects/${projectId}`)
+}
+
+export async function updateProject(
+  projectId: string,
+  config: ProjectConfig
+): Promise<Project> {
+  return request(`/projects/${projectId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(config),
+  })
+}
+
+export async function deleteProject(projectId: string): Promise<void> {
+  await request(`/projects/${projectId}`, { method: 'DELETE' })
+}
+
+// Point cloud endpoints
+export async function uploadPointCloud(
+  projectId: string,
+  file: File,
+  estimateNormals = true,
+  normalK = 16
+): Promise<PointCloudUploadResponse> {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const params = new URLSearchParams({
+    estimate_normals: String(estimateNormals),
+    normal_k: String(normalK),
+  })
+
+  const response = await fetch(
+    `${API_BASE}/projects/${projectId}/pointcloud?${params}`,
+    {
+      method: 'POST',
+      body: formData,
+    }
+  )
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Upload failed' }))
+    throw new Error(error.detail)
+  }
+
+  return response.json()
+}
+
+export async function getPointCloudStats(projectId: string): Promise<PointCloudStats> {
+  return request(`/projects/${projectId}/pointcloud`)
+}
+
+export async function getOctreeMetadata(projectId: string): Promise<OctreeMetadata> {
+  return request(`/projects/${projectId}/pointcloud/metadata`)
+}
+
+export async function getTile(
+  projectId: string,
+  level: number,
+  x: number,
+  y: number,
+  z: number
+): Promise<TileData> {
+  return request(`/projects/${projectId}/pointcloud/tiles/${level}/${x}/${y}/${z}`)
+}
+
+// Sample generation endpoints
+export async function previewSamples(
+  projectId: string,
+  request: SampleGenerationRequest
+): Promise<SamplePreview> {
+  return request(`/projects/${projectId}/samples/preview`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export async function generateSamples(
+  projectId: string,
+  req: SampleGenerationRequest
+): Promise<{ sample_count: number; source_breakdown: Record<string, number> }> {
+  return request(`/projects/${projectId}/samples/generate`, {
+    method: 'POST',
+    body: JSON.stringify(req),
+  })
+}
+
+export async function exportParquet(projectId: string): Promise<Blob> {
+  const response = await fetch(`${API_BASE}/projects/${projectId}/export/parquet`)
+  if (!response.ok) {
+    throw new Error('Export failed')
+  }
+  return response.blob()
+}
+
+export async function exportConfig(projectId: string): Promise<Record<string, unknown>> {
+  return request(`/projects/${projectId}/export/config`)
+}
+
+// Health check
+export async function healthCheck(): Promise<{ status: string; version: string }> {
+  const response = await fetch('/health')
+  return response.json()
+}
