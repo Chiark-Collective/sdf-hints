@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Toast notification system with success/error/info/warning variants
+- Error boundary component for graceful React error recovery
+- Loading button component with spinner overlay
+- Upload progress bar showing percentage and MB transferred
+- Comprehensive test suite: 82 backend tests, 151 frontend tests
+
+### Changed
+
+- Integrated toast notifications throughout UI (project create/delete, upload, sample generation)
+- Upload API now uses XMLHttpRequest for progress tracking (fetch lacks upload progress support)
+- All mutation buttons now show loading state during operations
+
 ## [0.1.0] - 2025-12-22
 
 ### Added
