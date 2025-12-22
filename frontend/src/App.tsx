@@ -8,14 +8,20 @@ import { Suspense } from 'react'
 
 import { PointCloudViewer } from './components/canvas/PointCloudViewer'
 import { SelectionVolume } from './components/canvas/SelectionVolume'
+import { PrimitivePlacer } from './components/canvas/PrimitivePlacer'
 import { Toolbar } from './components/ui/Toolbar'
 import { ProjectPanel } from './components/ui/ProjectPanel'
 import { LabelPanel } from './components/ui/LabelPanel'
 import { StatusBar } from './components/ui/StatusBar'
 import { useProjectStore } from './stores/projectStore'
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 
 function Scene() {
   const projectId = useProjectStore((s) => s.currentProjectId)
+  const mode = useProjectStore((s) => s.mode)
+
+  // Disable orbit controls when using placement modes
+  const orbitEnabled = mode === 'orbit'
 
   return (
     <>
@@ -33,8 +39,11 @@ function Scene() {
       {/* Selection volume visualization */}
       <SelectionVolume />
 
-      {/* Camera controls */}
-      <OrbitControls makeDefault />
+      {/* Primitive placer (when in primitive mode) */}
+      {projectId && <PrimitivePlacer projectId={projectId} />}
+
+      {/* Camera controls - disabled when placing primitives */}
+      <OrbitControls makeDefault enabled={orbitEnabled} />
 
       {/* Gizmo helper */}
       <GizmoHelper alignment="bottom-right" margin={[80, 80]}>
@@ -48,6 +57,9 @@ function Scene() {
 }
 
 export default function App() {
+  // Global keyboard shortcuts
+  useKeyboardShortcuts()
+
   return (
     <div className="flex flex-col h-screen bg-gray-950">
       {/* Top toolbar */}

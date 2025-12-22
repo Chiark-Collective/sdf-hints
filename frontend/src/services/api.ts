@@ -203,11 +203,11 @@ export async function getTile(
 // Sample generation endpoints
 export async function previewSamples(
   projectId: string,
-  request: SampleGenerationRequest
+  req: SampleGenerationRequest
 ): Promise<SamplePreview> {
   return request(`/projects/${projectId}/samples/preview`, {
     method: 'POST',
-    body: JSON.stringify(request),
+    body: JSON.stringify(req),
   })
 }
 

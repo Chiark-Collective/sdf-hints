@@ -41,6 +41,14 @@ export interface HalfspaceConstraint extends BaseConstraint {
   normal: [number, number, number]
 }
 
+export interface CylinderConstraint extends BaseConstraint {
+  type: 'cylinder'
+  center: [number, number, number]
+  axis: [number, number, number]
+  radius: number
+  height: number
+}
+
 export interface PaintedRegionConstraint extends BaseConstraint {
   type: 'painted_region'
   pointIndices: number[]
@@ -58,6 +66,7 @@ export type Constraint =
   | BoxConstraint
   | SphereConstraint
   | HalfspaceConstraint
+  | CylinderConstraint
   | PaintedRegionConstraint
   | SeedPropagationConstraint
 

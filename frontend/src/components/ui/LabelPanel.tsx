@@ -1,13 +1,17 @@
 // ABOUTME: Right sidebar panel for label selection and constraint list
 // ABOUTME: Shows active label type and list of created constraints
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { useMutation } from '@tanstack/react-query'
 import * as ToggleGroup from '@radix-ui/react-toggle-group'
 import * as Slider from '@radix-ui/react-slider'
-import { TrashIcon, EyeOpenIcon, EyeClosedIcon } from '@radix-ui/react-icons'
+import { TrashIcon, DownloadIcon } from '@radix-ui/react-icons'
 
 import { useProjectStore, type LabelType } from '../../stores/projectStore'
 import { useLabelStore, type Constraint } from '../../stores/labelStore'
+import { useConstraintSync } from '../../hooks/useConstraintSync'
+import { PrimitiveMode } from '../modes/PrimitiveMode'
+import { generateSamples, exportParquet } from '../../services/api'
 
 const labelOptions: { value: LabelType; label: string; description: string; color: string }[] = [
   {
@@ -42,6 +46,9 @@ export function LabelPanel() {
     currentProjectId ? s.getConstraints(currentProjectId) : []
   )
   const removeConstraint = useLabelStore((s) => s.removeConstraint)
+
+  // Backend sync for constraints
+  const { deleteConstraint: syncDeleteConstraint } = useConstraintSync(currentProjectId)
 
   // Group constraints by type
   const groupedConstraints = useMemo(() => {
@@ -87,7 +94,13 @@ export function LabelPanel() {
         </ToggleGroup.Root>
       </div>
 
-      {/* Brush settings (shown in brush mode) */}
+      {/* Mode-specific settings */}
+      {mode === 'primitive' && (
+        <div className="border-b border-gray-800">
+          <PrimitiveMode />
+        </div>
+      )}
+
       {mode === 'brush' && (
         <div className="p-4 border-b border-gray-800">
           <h3 className="text-sm font-medium mb-3">Brush Size</h3>
@@ -135,10 +148,12 @@ export function LabelPanel() {
                       <ConstraintItem
                         key={constraint.id}
                         constraint={constraint}
-                        onDelete={() =>
-                          currentProjectId &&
-                          removeConstraint(currentProjectId, constraint.id)
-                        }
+                        onDelete={() => {
+                          if (currentProjectId) {
+                            removeConstraint(currentProjectId, constraint.id)
+                            syncDeleteConstraint(constraint.id)
+                          }
+                        }}
                       />
                     ))}
                   </ul>
@@ -151,14 +166,7 @@ export function LabelPanel() {
 
       {/* Export section */}
       {currentProjectId && constraints.length > 0 && (
-        <div className="p-4 border-t border-gray-800">
-          <button className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
-            Generate Samples
-          </button>
-          <p className="text-xs text-gray-500 mt-2 text-center">
-            Export training data for survi
-          </p>
-        </div>
+        <ExportSection projectId={currentProjectId} constraintCount={constraints.length} />
       )}
     </div>
   )
@@ -204,4 +212,84 @@ function formatConstraintType(type: string): string {
     ml_import: 'ML Imports',
   }
   return labels[type] || type
+}
+
+interface ExportSectionProps {
+  projectId: string
+  constraintCount: number
+}
+
+function ExportSection({ projectId, constraintCount }: ExportSectionProps) {
+  const [sampleCount, setSampleCount] = useState<number | null>(null)
+
+  const generateMutation = useMutation({
+    mutationFn: () =>
+      generateSamples(projectId, {
+        total_samples: 10000,
+        include_surface: true,
+        far_direction: 'bidirectional',
+      }),
+    onSuccess: (data) => {
+      setSampleCount(data.sample_count)
+    },
+  })
+
+  const exportMutation = useMutation({
+    mutationFn: () => exportParquet(projectId),
+    onSuccess: (blob) => {
+      // Download the file
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${projectId}_samples.parquet`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    },
+  })
+
+  return (
+    <div className="p-4 border-t border-gray-800 space-y-3">
+      {/* Generate button */}
+      <button
+        onClick={() => generateMutation.mutate()}
+        disabled={generateMutation.isPending}
+        className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {generateMutation.isPending ? 'Generating...' : 'Generate Samples'}
+      </button>
+
+      {/* Status */}
+      {sampleCount !== null && (
+        <div className="text-center">
+          <p className="text-sm text-green-400">
+            {sampleCount.toLocaleString()} samples generated
+          </p>
+        </div>
+      )}
+
+      {generateMutation.isError && (
+        <p className="text-sm text-red-400 text-center">
+          {(generateMutation.error as Error).message}
+        </p>
+      )}
+
+      {/* Export button (shown after generation) */}
+      {sampleCount !== null && (
+        <button
+          onClick={() => exportMutation.mutate()}
+          disabled={exportMutation.isPending}
+          className="w-full px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          <DownloadIcon className="w-4 h-4" />
+          {exportMutation.isPending ? 'Exporting...' : 'Export Parquet'}
+        </button>
+      )}
+
+      <p className="text-xs text-gray-500 text-center">
+        {constraintCount} constraint{constraintCount !== 1 ? 's' : ''} defined
+      </p>
+    </div>
+  )
 }

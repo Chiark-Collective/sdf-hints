@@ -168,7 +168,6 @@ function selectVisibleNodes(
   minPointPixelSize = 2
 ): Set<string> {
   const visible = new Set<string>()
-  const viewport = new THREE.Vector4()
 
   // Get viewport dimensions
   const renderer = (camera as any).userData?.renderer

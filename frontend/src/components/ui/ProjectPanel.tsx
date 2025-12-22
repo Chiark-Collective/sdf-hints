@@ -12,7 +12,7 @@ import {
 } from '@radix-ui/react-icons'
 import * as Dialog from '@radix-ui/react-dialog'
 
-import { useProjectStore, type Project } from '../../stores/projectStore'
+import { useProjectStore } from '../../stores/projectStore'
 import {
   listProjects,
   createProject,
@@ -22,7 +22,6 @@ import {
 } from '../../services/api'
 
 export function ProjectPanel() {
-  const queryClient = useQueryClient()
   const currentProjectId = useProjectStore((s) => s.currentProjectId)
   const setCurrentProject = useProjectStore((s) => s.setCurrentProject)
 
