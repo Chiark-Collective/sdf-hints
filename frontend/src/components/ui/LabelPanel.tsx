@@ -4,13 +4,16 @@
 import { useMemo, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import * as ToggleGroup from '@radix-ui/react-toggle-group'
-import * as Slider from '@radix-ui/react-slider'
 import { TrashIcon, DownloadIcon } from '@radix-ui/react-icons'
 
 import { useProjectStore, type LabelType } from '../../stores/projectStore'
 import { useLabelStore, type Constraint } from '../../stores/labelStore'
+import { useSliceStore } from '../../stores/sliceStore'
+import { useBrushStore } from '../../stores/brushStore'
 import { useConstraintSync } from '../../hooks/useConstraintSync'
 import { PrimitiveMode } from '../modes/PrimitiveMode'
+import { SliceMode } from '../modes/SliceMode'
+import { BrushMode } from '../modes/BrushMode'
 import { generateSamples, exportParquet } from '../../services/api'
 
 const labelOptions: { value: LabelType; label: string; description: string; color: string }[] = [
@@ -34,11 +37,40 @@ const labelOptions: { value: LabelType; label: string; description: string; colo
   },
 ]
 
+// Wrapper for SliceMode with store integration
+function SliceModePanel() {
+  const tool = useSliceStore((s) => s.tool)
+  const setTool = useSliceStore((s) => s.setTool)
+  const brushSize = useSliceStore((s) => s.brushSize)
+  const setBrushSize = useSliceStore((s) => s.setBrushSize)
+
+  return (
+    <div className="border-b border-gray-800">
+      <SliceMode
+        tool={tool}
+        setTool={setTool}
+        brushSize={brushSize}
+        setBrushSize={setBrushSize}
+      />
+    </div>
+  )
+}
+
+// Wrapper for BrushMode with store integration
+function BrushModePanel() {
+  const depthAware = useBrushStore((s) => s.depthAware)
+  const setDepthAware = useBrushStore((s) => s.setDepthAware)
+
+  return (
+    <div className="border-b border-gray-800">
+      <BrushMode depthAware={depthAware} setDepthAware={setDepthAware} />
+    </div>
+  )
+}
+
 export function LabelPanel() {
   const activeLabel = useProjectStore((s) => s.activeLabel)
   const setActiveLabel = useProjectStore((s) => s.setActiveLabel)
-  const brushRadius = useProjectStore((s) => s.brushRadius)
-  const setBrushRadius = useProjectStore((s) => s.setBrushRadius)
   const mode = useProjectStore((s) => s.mode)
   const currentProjectId = useProjectStore((s) => s.currentProjectId)
 
@@ -101,28 +133,12 @@ export function LabelPanel() {
         </div>
       )}
 
+      {mode === 'slice' && (
+        <SliceModePanel />
+      )}
+
       {mode === 'brush' && (
-        <div className="p-4 border-b border-gray-800">
-          <h3 className="text-sm font-medium mb-3">Brush Size</h3>
-          <div className="flex items-center gap-4">
-            <Slider.Root
-              value={[brushRadius]}
-              onValueChange={([value]) => setBrushRadius(value)}
-              min={0.01}
-              max={1}
-              step={0.01}
-              className="relative flex items-center flex-1 h-5"
-            >
-              <Slider.Track className="relative h-1 flex-1 bg-gray-700 rounded">
-                <Slider.Range className="absolute h-full bg-blue-500 rounded" />
-              </Slider.Track>
-              <Slider.Thumb className="block w-4 h-4 bg-white rounded-full shadow focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </Slider.Root>
-            <span className="text-sm text-gray-400 w-12 text-right">
-              {brushRadius.toFixed(2)}
-            </span>
-          </div>
-        </div>
+        <BrushModePanel />
       )}
 
       {/* Constraints list */}

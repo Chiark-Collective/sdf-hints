@@ -9,6 +9,8 @@ import { Suspense } from 'react'
 import { PointCloudViewer } from './components/canvas/PointCloudViewer'
 import { SelectionVolume } from './components/canvas/SelectionVolume'
 import { PrimitivePlacer } from './components/canvas/PrimitivePlacer'
+import { BrushPainter } from './components/canvas/BrushPainter'
+import { useBrushStore } from './stores/brushStore'
 import { Toolbar } from './components/ui/Toolbar'
 import { ProjectPanel } from './components/ui/ProjectPanel'
 import { LabelPanel } from './components/ui/LabelPanel'
@@ -19,8 +21,9 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 function Scene() {
   const projectId = useProjectStore((s) => s.currentProjectId)
   const mode = useProjectStore((s) => s.mode)
+  const depthAware = useBrushStore((s) => s.depthAware)
 
-  // Disable orbit controls when using placement modes
+  // Disable orbit controls when using interactive modes
   const orbitEnabled = mode === 'orbit'
 
   return (
@@ -42,7 +45,16 @@ function Scene() {
       {/* Primitive placer (when in primitive mode) */}
       {projectId && <PrimitivePlacer projectId={projectId} />}
 
-      {/* Camera controls - disabled when placing primitives */}
+      {/* Brush painter (when in brush mode) */}
+      {projectId && (
+        <BrushPainter
+          projectId={projectId}
+          points={null}
+          depthAware={depthAware}
+        />
+      )}
+
+      {/* Camera controls - disabled when using interactive modes */}
       <OrbitControls makeDefault enabled={orbitEnabled} />
 
       {/* Gizmo helper */}
