@@ -10,7 +10,6 @@ import {
   UploadIcon,
   ChevronRightIcon,
   ChevronLeftIcon,
-  DoubleArrowLeftIcon,
 } from '@radix-ui/react-icons'
 import * as Dialog from '@radix-ui/react-dialog'
 

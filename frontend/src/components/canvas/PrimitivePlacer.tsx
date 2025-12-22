@@ -62,6 +62,9 @@ export function PrimitivePlacer({ projectId }: PrimitivePlacerProps) {
   // Track if we're in primitive mode
   const isActive = mode === 'primitive'
 
+  // Transform mode: translate (G), rotate (R), scale (S)
+  const [transformMode, setTransformMode] = useState<'translate' | 'rotate' | 'scale'>('translate')
+
   // Update ghost position on mouse move
   useFrame(() => {
     if (!isActive || placingPrimitive) {
@@ -183,6 +186,19 @@ export function PrimitivePlacer({ projectId }: PrimitivePlacerProps) {
             selectConstraint(null)
           }
           break
+        // Transform mode shortcuts
+        case 'g':
+        case 'G':
+          setTransformMode('translate')
+          break
+        case 'r':
+        case 'R':
+          setTransformMode('rotate')
+          break
+        case 's':
+        case 'S':
+          setTransformMode('scale')
+          break
       }
     }
 
@@ -214,6 +230,7 @@ export function PrimitivePlacer({ projectId }: PrimitivePlacerProps) {
         <PlacingPrimitiveView
           primitive={placingPrimitive}
           label={activeLabel}
+          transformMode={transformMode}
           onUpdate={updatePlacing}
           onConfirm={handleConfirmPlacement}
         />
@@ -227,6 +244,7 @@ export function PrimitivePlacer({ projectId }: PrimitivePlacerProps) {
             key={constraint.id}
             constraint={constraint}
             isSelected={constraint.id === selectedConstraintId}
+            transformMode={transformMode}
             onSelect={() => selectConstraint(constraint.id)}
             onUpdate={(updates) => {
               const updated = { ...constraint, ...updates } as typeof constraint
@@ -244,6 +262,23 @@ export function PrimitivePlacer({ projectId }: PrimitivePlacerProps) {
         <planeGeometry args={[1000, 1000]} />
         <meshBasicMaterial transparent opacity={0} side={THREE.DoubleSide} />
       </mesh>
+
+      {/* Transform mode indicator */}
+      <Html position={[0, 0, 0]} style={{ pointerEvents: 'none' }} center>
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 pointer-events-none">
+          <div className="flex gap-2 bg-gray-900/90 rounded-lg px-3 py-2 text-xs">
+            <span className={transformMode === 'translate' ? 'text-blue-400 font-bold' : 'text-gray-400'}>
+              [G] Move
+            </span>
+            <span className={transformMode === 'rotate' ? 'text-blue-400 font-bold' : 'text-gray-400'}>
+              [R] Rotate
+            </span>
+            <span className={transformMode === 'scale' ? 'text-blue-400 font-bold' : 'text-gray-400'}>
+              [S] Scale
+            </span>
+          </div>
+        </div>
+      </Html>
     </group>
   )
 }
@@ -311,6 +346,7 @@ function GhostPrimitive({ position }: GhostPrimitiveProps) {
 interface PlacingPrimitiveViewProps {
   primitive: PlacingPrimitive
   label: LabelType
+  transformMode: 'translate' | 'rotate' | 'scale'
   onUpdate: (updates: Partial<PlacingPrimitive>) => void
   onConfirm: () => void
 }
@@ -318,6 +354,7 @@ interface PlacingPrimitiveViewProps {
 function PlacingPrimitiveView({
   primitive,
   label,
+  transformMode,
   onUpdate,
   onConfirm,
 }: PlacingPrimitiveViewProps) {
@@ -357,7 +394,7 @@ function PlacingPrimitiveView({
       {meshRef.current && (
         <TransformControls
           object={meshRef.current}
-          mode="translate"
+          mode={transformMode}
           onObjectChange={handleTransformChange}
           onMouseUp={handleTransformChange}
         />
@@ -445,6 +482,7 @@ import { Html } from '@react-three/drei'
 interface ConstraintViewProps {
   constraint: Constraint
   isSelected: boolean
+  transformMode: 'translate' | 'rotate' | 'scale'
   onSelect: () => void
   onUpdate: (updates: Partial<Constraint>) => void
 }
@@ -452,6 +490,7 @@ interface ConstraintViewProps {
 function ConstraintView({
   constraint,
   isSelected,
+  transformMode,
   onSelect,
   onUpdate,
 }: ConstraintViewProps) {
@@ -463,15 +502,51 @@ function ConstraintView({
     if (!meshRef.current || !isSelected) return
 
     const pos = meshRef.current.position
+    const scale = meshRef.current.scale
 
     if (constraint.type === 'box') {
-      onUpdate({ center: [pos.x, pos.y, pos.z] })
+      const boxConstraint = constraint as BoxConstraint
+      // Apply scale to halfExtents and reset scale
+      if (scale.x !== 1 || scale.y !== 1 || scale.z !== 1) {
+        onUpdate({
+          center: [pos.x, pos.y, pos.z],
+          halfExtents: [
+            boxConstraint.halfExtents[0] * scale.x,
+            boxConstraint.halfExtents[1] * scale.y,
+            boxConstraint.halfExtents[2] * scale.z,
+          ],
+        })
+        meshRef.current.scale.set(1, 1, 1)
+      } else {
+        onUpdate({ center: [pos.x, pos.y, pos.z] })
+      }
     } else if (constraint.type === 'sphere') {
-      onUpdate({ center: [pos.x, pos.y, pos.z] })
+      const sphereConstraint = constraint as SphereConstraint
+      // Use uniform scale for sphere
+      if (scale.x !== 1) {
+        onUpdate({
+          center: [pos.x, pos.y, pos.z],
+          radius: sphereConstraint.radius * scale.x,
+        })
+        meshRef.current.scale.set(1, 1, 1)
+      } else {
+        onUpdate({ center: [pos.x, pos.y, pos.z] })
+      }
     } else if (constraint.type === 'halfspace') {
       onUpdate({ point: [pos.x, pos.y, pos.z] })
     } else if (constraint.type === 'cylinder') {
-      onUpdate({ center: [pos.x, pos.y, pos.z] })
+      const cylConstraint = constraint as CylinderConstraint
+      // Scale radius (x/z) and height (y) separately
+      if (scale.x !== 1 || scale.y !== 1) {
+        onUpdate({
+          center: [pos.x, pos.y, pos.z],
+          radius: cylConstraint.radius * scale.x,
+          height: cylConstraint.height * scale.y,
+        })
+        meshRef.current.scale.set(1, 1, 1)
+      } else {
+        onUpdate({ center: [pos.x, pos.y, pos.z] })
+      }
     }
   }, [constraint, isSelected, onUpdate])
 
@@ -492,7 +567,7 @@ function ConstraintView({
       {isSelected && meshRef.current && (
         <TransformControls
           object={meshRef.current}
-          mode="translate"
+          mode={transformMode}
           onObjectChange={handleTransformChange}
           onMouseUp={handleTransformChange}
         />
