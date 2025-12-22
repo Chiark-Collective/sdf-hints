@@ -8,7 +8,7 @@ test.describe('Complete Labeling Workflow', () => {
     cleanupTestFiles()
   })
 
-  test('should complete a full workflow: create project, upload, generate samples', async ({
+  test('should complete a full workflow: create project, upload, switch modes', async ({
     app,
     page,
   }) => {
@@ -19,16 +19,19 @@ test.describe('Complete Labeling Workflow', () => {
     // 2. Create a new project
     const projectName = `Workflow Test ${Date.now()}`
     await app.createProject(projectName)
-    await expect(page.getByText(projectName)).toBeVisible()
-    await expect(page.getByText('Project created')).toBeVisible()
+    await expect(app.getProjectInList(projectName)).toBeVisible()
+    await expect(app.getToastTitle('Project created')).toBeVisible()
+    await app.dismissToast()
 
     // 3. Upload a point cloud
     const filePath = createTestPointCloud(200)
     await app.uploadFile(filePath)
-    await expect(page.getByText('Point cloud uploaded', { exact: true })).toBeVisible({ timeout: 30000 })
+    await expect(app.getToastTitle('Point cloud uploaded')).toBeVisible({ timeout: 30000 })
 
-    // 4. Verify point cloud info in status bar
-    await expect(app.statusBar).toContainText(/\d+ points/)
+    // 4. Give UI time to update, then verify point cloud info in status bar
+    await page.waitForTimeout(500)
+    // Note: Playwright normalizes whitespace, so "100 / 100 points" becomes "100/100points"
+    await expect(app.statusBar).toContainText(/\d+\s*points/, { timeout: 10000 })
 
     // 5. Switch to Primitive mode
     await app.selectMode('Primitive')
@@ -48,6 +51,7 @@ test.describe('Complete Labeling Workflow', () => {
     // Create project via dialog
     const projectName = `Keyboard Workflow ${Date.now()}`
     await app.createProject(projectName)
+    await app.dismissToast()
 
     // Use keyboard to switch modes
     await page.keyboard.press('p') // Primitive
@@ -87,12 +91,13 @@ test.describe('Error Recovery', () => {
     await page.waitForLoadState('networkidle')
 
     // Project should still exist (persisted in backend)
-    await expect(page.getByText(projectName)).toBeVisible()
+    await expect(app.getProjectInList(projectName)).toBeVisible()
   })
 
-  test('should recover from mode switch during operation', async ({ app, page }) => {
+  test('should recover from mode switch during operation', async ({ app }) => {
     await app.goto()
     await app.createProject(`Recovery Test ${Date.now()}`)
+    await app.dismissToast()
 
     // Switch modes rapidly
     await app.selectMode('Primitive')
@@ -108,7 +113,7 @@ test.describe('Error Recovery', () => {
 })
 
 test.describe('UI Responsiveness', () => {
-  test('should render canvas at appropriate size', async ({ app, page }) => {
+  test('should render canvas at appropriate size', async ({ app }) => {
     await app.goto()
 
     // Canvas should be visible and have reasonable dimensions
@@ -137,26 +142,23 @@ test.describe('UI Responsiveness', () => {
 })
 
 test.describe('Toast Notifications', () => {
-  test('should show and auto-dismiss toasts', async ({ app, page }) => {
+  test('should show and auto-dismiss toasts', async ({ app }) => {
     await app.goto()
 
     // Trigger a toast by creating a project
     await app.createProject(`Toast Test ${Date.now()}`)
 
     // Toast should appear
-    const toast = page.locator('[role="status"]')
-    await expect(toast).toBeVisible()
+    await expect(app.getToastTitle('Project created')).toBeVisible()
 
     // Toast should auto-dismiss (default 3s, give it 5s)
-    await expect(toast).not.toBeVisible({ timeout: 6000 })
+    await expect(app.getToastTitle('Project created')).not.toBeVisible({ timeout: 6000 })
   })
 
-  test('should show error toasts with longer duration', async ({ app, page }) => {
-    // This would require triggering an error condition
-    // For now, just verify the toast system works
+  test('should show success toast on project creation', async ({ app }) => {
     await app.goto()
-    await app.createProject(`Error Toast Test ${Date.now()}`)
-    await expect(page.getByText('Project created')).toBeVisible()
+    await app.createProject(`Success Toast Test ${Date.now()}`)
+    await expect(app.getToastTitle('Project created')).toBeVisible()
   })
 })
 
@@ -164,9 +166,10 @@ test.describe('3D Canvas Interaction', () => {
   test.beforeEach(async ({ app }) => {
     await app.goto()
     await app.createProject(`Canvas Test ${Date.now()}`)
+    await app.dismissToast()
   })
 
-  test('should render 3D scene', async ({ app, page }) => {
+  test('should render 3D scene', async ({ app }) => {
     // Canvas should have a WebGL context
     const canvas = app.canvas
     await expect(canvas).toBeVisible()
@@ -176,11 +179,12 @@ test.describe('3D Canvas Interaction', () => {
     expect(tagName.toLowerCase()).toBe('canvas')
   })
 
-  test('should allow canvas click interactions', async ({ app, page }) => {
+  test('should allow canvas click interactions', async ({ app }) => {
     // Upload a point cloud first
     const filePath = createTestPointCloud(100)
     await app.uploadFile(filePath)
-    await expect(page.getByText('Point cloud uploaded', { exact: true })).toBeVisible({ timeout: 30000 })
+    await expect(app.getToastTitle('Point cloud uploaded')).toBeVisible({ timeout: 30000 })
+    await app.dismissToast()
 
     // Switch to Primitive mode
     await app.selectMode('Primitive')

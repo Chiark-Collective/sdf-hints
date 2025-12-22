@@ -139,16 +139,26 @@ export class AppHelper {
     await this.canvas.click({ position: { x, y } })
   }
 
-  // Toast notifications
+  // Toast notifications - target the toast title specifically
+  getToastTitle(text: string): Locator {
+    // The toast has a structure with a title div - target it specifically
+    return this.page.locator('.font-medium.text-white.text-sm').filter({ hasText: text }).first()
+  }
+
   async waitForToast(text: string) {
-    await this.page.waitForSelector(`[role="status"]:has-text("${text}")`, { timeout: 5000 })
+    await this.getToastTitle(text).waitFor({ state: 'visible', timeout: 5000 })
   }
 
   async dismissToast() {
-    const closeButton = this.page.locator('[role="status"] button')
+    const closeButton = this.page.locator('[role="status"] button').first()
     if (await closeButton.isVisible()) {
       await closeButton.click()
     }
+  }
+
+  // Project list - target project items specifically
+  getProjectInList(name: string): Locator {
+    return this.page.locator('ul li').filter({ hasText: name }).first()
   }
 
   // Keyboard shortcuts

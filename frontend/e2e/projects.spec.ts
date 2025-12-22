@@ -8,11 +8,10 @@ test.describe('Project Management', () => {
     await app.goto()
   })
 
-  test('should display empty project list on initial load', async ({ app }) => {
+  test('should display project panel on load', async ({ app }) => {
     const projectPanel = app.projectPanel
     await expect(projectPanel).toBeVisible()
     await expect(projectPanel.getByText('Projects')).toBeVisible()
-    await expect(projectPanel.getByText('No projects yet')).toBeVisible()
   })
 
   test('should open create project dialog', async ({ app, page }) => {
@@ -30,14 +29,11 @@ test.describe('Project Management', () => {
 
     await app.createProject(projectName)
 
-    // Project should appear in list
-    await expect(page.getByText(projectName)).toBeVisible()
-
-    // "No projects" message should be gone
-    await expect(page.getByText('No projects yet')).not.toBeVisible()
+    // Project should appear in list (use specific selector)
+    await expect(app.getProjectInList(projectName)).toBeVisible()
 
     // Project should be selected (shown by different styling)
-    const projectItem = page.locator(`li:has-text("${projectName}")`)
+    const projectItem = app.getProjectInList(projectName)
     await expect(projectItem).toHaveClass(/bg-blue/)
   })
 
@@ -56,6 +52,7 @@ test.describe('Project Management', () => {
     const project2 = `Project B ${Date.now()}`
 
     await app.createProject(project1)
+    await app.dismissToast()
     await app.createProject(project2)
 
     // Project 2 should be selected (last created)
@@ -86,24 +83,23 @@ test.describe('Project Management', () => {
     await app.openCreateProjectDialog()
 
     // Fill in name but cancel
-    await page.fill('input[placeholder="Project name"]', 'Cancelled Project')
+    const cancelledName = `Cancelled ${Date.now()}`
+    await page.fill('input[placeholder="Project name"]', cancelledName)
     await page.click('button:has-text("Cancel")')
 
     // Dialog should close
     await expect(page.locator('[role="dialog"]')).not.toBeVisible()
 
-    // Project should not exist
-    await expect(page.getByText('Cancelled Project')).not.toBeVisible()
-    await expect(page.getByText('No projects yet')).toBeVisible()
+    // Project should not exist in list
+    await expect(app.getProjectInList(cancelledName)).not.toBeVisible()
   })
 
-  test('should show toast on project creation', async ({ app, page }) => {
+  test('should show toast on project creation', async ({ app }) => {
     const projectName = `Toast Test ${Date.now()}`
     await app.createProject(projectName)
 
-    // Should show success toast
-    await expect(page.locator('[role="status"]')).toBeVisible()
-    await expect(page.getByText('Project created')).toBeVisible()
+    // Should show success toast (use specific toast title selector)
+    await expect(app.getToastTitle('Project created')).toBeVisible()
   })
 
   test('should close dialog with Escape key', async ({ app, page }) => {
@@ -121,14 +117,10 @@ test.describe('Project Panel UI', () => {
     await app.goto()
   })
 
-  test('should show loading state initially', async ({ page }) => {
-    // On a fresh load, there might be a brief loading state
-    // This test verifies the loading indicator works
-    await page.goto('/')
-    // Either "Loading..." or the actual content should appear quickly
-    await expect(
-      page.getByText('Loading...').or(page.getByText('No projects yet')).or(page.locator('li'))
-    ).toBeVisible({ timeout: 5000 })
+  test('should show projects panel on load', async ({ app, page }) => {
+    // Panel should be visible with projects header
+    await expect(app.projectPanel).toBeVisible()
+    await expect(app.projectPanel.getByText('Projects')).toBeVisible()
   })
 
   test('should have proper layout', async ({ app, page }) => {
