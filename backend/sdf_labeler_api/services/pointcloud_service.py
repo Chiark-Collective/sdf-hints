@@ -423,3 +423,74 @@ class PointCloudService:
             node_id += str(octant)
 
         return node_id
+
+    async def store_dataframe(
+        self,
+        project_id: str,
+        df: "pd.DataFrame",
+        source_name: str = "dataframe",
+        mesh: "trimesh.Trimesh | None" = None,
+        estimate_normals: bool = True,
+        normal_k: int = 16,
+    ) -> PointCloudUploadResponse:
+        """Store a point cloud from a pandas DataFrame.
+
+        This is used by scenario loaders to store pre-loaded point clouds.
+
+        Args:
+            project_id: Project to store point cloud in
+            df: DataFrame with columns x, y, z (and optionally nx, ny, nz)
+            source_name: Name to record as the source
+            mesh: Optional mesh to store alongside point cloud
+            estimate_normals: Whether to estimate normals if not present
+            normal_k: Number of neighbors for normal estimation
+
+        Returns:
+            PointCloudUploadResponse with point cloud metadata
+        """
+        import pandas as pd
+        import trimesh
+
+        # Extract coordinates
+        xyz = df[["x", "y", "z"]].values.astype(np.float64)
+
+        # Extract or estimate normals
+        normals = None
+        if all(c in df.columns for c in ["nx", "ny", "nz"]):
+            normals = df[["nx", "ny", "nz"]].values.astype(np.float64)
+        elif estimate_normals:
+            normals = self._estimate_normals(xyz, k=normal_k)
+
+        # Compute bounds
+        bounds_low = tuple(xyz.min(axis=0).tolist())
+        bounds_high = tuple(xyz.max(axis=0).tolist())
+
+        # Generate point cloud ID
+        pc_id = str(uuid.uuid4())
+
+        # Save raw point cloud
+        pc_dir = self._pointcloud_dir(project_id)
+        pc_dir.mkdir(parents=True, exist_ok=True)
+
+        np.savez_compressed(
+            pc_dir / "points.npz",
+            xyz=xyz,
+            normals=normals if normals is not None else np.array([]),
+        )
+
+        # Save mesh if provided
+        if mesh is not None:
+            mesh.export(pc_dir / "mesh.obj")
+
+        # Build octree for LOD streaming
+        self._build_octree(project_id, xyz, normals)
+
+        return PointCloudUploadResponse(
+            id=pc_id,
+            filename=source_name,
+            point_count=len(xyz),
+            has_normals=normals is not None,
+            bounds_low=bounds_low,
+            bounds_high=bounds_high,
+            format="dataframe",
+        )

@@ -275,6 +275,56 @@ export async function exportConfig(projectId: string): Promise<Record<string, un
   return request(`/projects/${projectId}/export/config`)
 }
 
+// Scenario types
+export interface ScenarioInfo {
+  name: string
+  description: string
+  category: 'trenchfoot' | 'sdf'
+  preview_url?: string
+}
+
+export interface ScenarioListResponse {
+  scenarios: ScenarioInfo[]
+  total: number
+}
+
+export interface LoadScenarioResponse {
+  status: string
+  scenario: string
+  category: string
+  point_count: number
+  has_mesh: boolean
+  bounds: {
+    low: [number, number, number]
+    high: [number, number, number]
+  }
+  metadata: Record<string, unknown>
+}
+
+// Scenario endpoints
+export async function listScenarios(
+  category?: 'trenchfoot' | 'sdf'
+): Promise<ScenarioListResponse> {
+  const params = category ? `?category=${category}` : ''
+  return request(`/scenarios${params}`)
+}
+
+export async function loadScenario(
+  projectId: string,
+  scenarioName: string,
+  category: 'trenchfoot' | 'sdf' = 'trenchfoot',
+  variant: 'culled' | 'full' = 'culled'
+): Promise<LoadScenarioResponse> {
+  const params = new URLSearchParams({
+    scenario_name: scenarioName,
+    category,
+    variant,
+  })
+  return request(`/projects/${projectId}/load-scenario?${params}`, {
+    method: 'POST',
+  })
+}
+
 // Health check
 export async function healthCheck(): Promise<{ status: string; version: string }> {
   const response = await fetch('/health')

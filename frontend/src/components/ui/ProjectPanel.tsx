@@ -19,6 +19,8 @@ import {
   createProject,
   deleteProject,
   uploadPointCloud,
+  listScenarios,
+  loadScenario,
   type ProjectCreate,
   type UploadProgress,
 } from '../../services/api'
@@ -63,12 +65,55 @@ export function ProjectPanel() {
         )}
       </div>
 
-      {/* Upload section (when project selected) */}
+      {/* Upload/Scenarios section (when project selected) */}
       {currentProjectId && (
-        <div className="p-4 border-t border-gray-800">
-          <UploadDropzone projectId={currentProjectId} />
+        <div className="border-t border-gray-800">
+          <DataSourceTabs projectId={currentProjectId} />
         </div>
       )}
+    </div>
+  )
+}
+
+type DataSourceTab = 'upload' | 'scenarios'
+
+function DataSourceTabs({ projectId }: { projectId: string }) {
+  const [activeTab, setActiveTab] = useState<DataSourceTab>('upload')
+
+  return (
+    <div>
+      {/* Tab buttons */}
+      <div className="flex border-b border-gray-800">
+        <button
+          className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${
+            activeTab === 'upload'
+              ? 'text-blue-400 border-b-2 border-blue-400'
+              : 'text-gray-500 hover:text-gray-300'
+          }`}
+          onClick={() => setActiveTab('upload')}
+        >
+          Upload
+        </button>
+        <button
+          className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${
+            activeTab === 'scenarios'
+              ? 'text-blue-400 border-b-2 border-blue-400'
+              : 'text-gray-500 hover:text-gray-300'
+          }`}
+          onClick={() => setActiveTab('scenarios')}
+        >
+          Scenarios
+        </button>
+      </div>
+
+      {/* Tab content */}
+      <div className="p-4">
+        {activeTab === 'upload' ? (
+          <UploadDropzone projectId={projectId} />
+        ) : (
+          <ScenarioBrowser projectId={projectId} />
+        )}
+      </div>
     </div>
   )
 }
@@ -306,6 +351,104 @@ function UploadDropzone({ projectId }: UploadDropzoneProps) {
             PLY, LAS, LAZ, CSV, NPZ, Parquet
           </p>
         </>
+      )}
+    </div>
+  )
+}
+
+interface ScenarioBrowserProps {
+  projectId: string
+}
+
+function ScenarioBrowser({ projectId }: ScenarioBrowserProps) {
+  const [selectedCategory, setSelectedCategory] = useState<'trenchfoot' | 'sdf'>('trenchfoot')
+  const queryClient = useQueryClient()
+  const updateProject = useProjectStore((s) => s.updateProject)
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['scenarios', selectedCategory],
+    queryFn: () => listScenarios(selectedCategory),
+  })
+
+  const loadMutation = useMutation({
+    mutationFn: ({ name, category }: { name: string; category: 'trenchfoot' | 'sdf' }) =>
+      loadScenario(projectId, name, category),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
+      queryClient.invalidateQueries({ queryKey: ['octree-metadata', projectId] })
+      updateProject(projectId, {
+        pointCloudId: result.scenario,
+        pointCount: result.point_count,
+        hasNormals: true,
+        boundsLow: result.bounds.low,
+        boundsHigh: result.bounds.high,
+      })
+      toast.success(
+        'Scenario loaded',
+        `${result.scenario}: ${result.point_count.toLocaleString()} points`
+      )
+    },
+    onError: (error: Error) => {
+      toast.error('Failed to load scenario', error.message)
+    },
+  })
+
+  const scenarios = data?.scenarios ?? []
+
+  return (
+    <div>
+      {/* Category selector */}
+      <div className="flex gap-2 mb-3">
+        <button
+          className={`px-2 py-1 text-xs rounded ${
+            selectedCategory === 'trenchfoot'
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-800 text-gray-400 hover:text-white'
+          }`}
+          onClick={() => setSelectedCategory('trenchfoot')}
+        >
+          Trenchfoot
+        </button>
+        <button
+          className={`px-2 py-1 text-xs rounded ${
+            selectedCategory === 'sdf'
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-800 text-gray-400 hover:text-white'
+          }`}
+          onClick={() => setSelectedCategory('sdf')}
+        >
+          SDF Shapes
+        </button>
+      </div>
+
+      {/* Scenario list */}
+      {isLoading ? (
+        <p className="text-xs text-gray-500">Loading scenarios...</p>
+      ) : scenarios.length === 0 ? (
+        <p className="text-xs text-gray-500">No scenarios available</p>
+      ) : (
+        <ul className="space-y-1 max-h-48 overflow-y-auto">
+          {scenarios.map((scenario) => (
+            <li key={scenario.name}>
+              <button
+                className="w-full text-left px-2 py-1.5 text-xs rounded bg-gray-800 hover:bg-gray-700 transition-colors disabled:opacity-50"
+                onClick={() =>
+                  loadMutation.mutate({ name: scenario.name, category: scenario.category })
+                }
+                disabled={loadMutation.isPending}
+              >
+                <span className="font-medium text-gray-200">{scenario.name}</span>
+                {scenario.description && (
+                  <span className="block text-gray-500 truncate">{scenario.description}</span>
+                )}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {loadMutation.isPending && (
+        <p className="text-xs text-blue-400 mt-2">Loading scenario...</p>
       )}
     </div>
   )

@@ -29,6 +29,7 @@ from sdf_labeler_api.services.project_service import ProjectService
 from sdf_labeler_api.services.pointcloud_service import PointCloudService
 from sdf_labeler_api.services.constraint_service import ConstraintService
 from sdf_labeler_api.services.sampling_service import SamplingService
+from sdf_labeler_api.services import scenarios_service
 
 
 @asynccontextmanager
@@ -293,3 +294,95 @@ async def export_config(project_id: str):
 
     config = sampling_service.export_config(project_id, project)
     return config
+
+
+# =============================================================================
+# Scenario Datasets
+# =============================================================================
+
+
+@app.get("/v1/scenarios")
+async def list_scenarios(category: str | None = None):
+    """List available scenario datasets.
+
+    Args:
+        category: Filter by category ("trenchfoot", "sdf", or None for all)
+    """
+    scenarios = []
+
+    if category is None or category == "trenchfoot":
+        scenarios.extend(scenarios_service.list_trenchfoot_scenarios())
+
+    if category is None or category == "sdf":
+        scenarios.extend(scenarios_service.list_sdf_scenarios())
+
+    return {
+        "scenarios": [
+            {
+                "name": s.name,
+                "description": s.description,
+                "category": s.category,
+                "preview_url": s.preview_url,
+            }
+            for s in scenarios
+        ],
+        "total": len(scenarios),
+    }
+
+
+@app.post("/v1/projects/{project_id}/load-scenario")
+async def load_scenario(
+    project_id: str,
+    scenario_name: str = Query(..., description="Name of the scenario to load"),
+    category: str = Query("trenchfoot", description="Category: 'trenchfoot' or 'sdf'"),
+    variant: str = Query("culled", description="Point cloud variant (for trenchfoot)"),
+):
+    """Load a scenario dataset into the project.
+
+    This replaces any existing point cloud in the project.
+    """
+    project = project_service.get(project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    try:
+        if category == "trenchfoot":
+            loaded = scenarios_service.load_trenchfoot_scenario(scenario_name, variant=variant)
+        elif category == "sdf":
+            loaded = scenarios_service.load_sdf_scenario(scenario_name)
+        else:
+            raise HTTPException(status_code=400, detail=f"Unknown category: {category}")
+
+        # Store the point cloud using pointcloud service
+        result = await pointcloud_service.store_dataframe(
+            project_id=project_id,
+            df=loaded.points,
+            source_name=f"{category}:{scenario_name}",
+            mesh=loaded.mesh,
+        )
+
+        # Update project with point cloud reference
+        project_service.set_pointcloud(
+            project_id,
+            result.id,
+            result.bounds_low,
+            result.bounds_high,
+        )
+
+        return {
+            "status": "loaded",
+            "scenario": scenario_name,
+            "category": category,
+            "point_count": len(loaded.points),
+            "has_mesh": loaded.mesh is not None,
+            "bounds": {
+                "low": loaded.bounds[0].tolist(),
+                "high": loaded.bounds[1].tolist(),
+            },
+            "metadata": loaded.metadata,
+        }
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load scenario: {e}")
