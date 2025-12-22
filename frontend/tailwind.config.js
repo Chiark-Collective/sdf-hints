@@ -9,6 +9,26 @@ export default {
   ],
   theme: {
     extend: {
+      animation: {
+        slideIn: 'slideIn 150ms ease-out',
+        fadeOut: 'fadeOut 100ms ease-in',
+        swipeOut: 'swipeOut 100ms ease-out',
+        spin: 'spin 1s linear infinite',
+      },
+      keyframes: {
+        slideIn: {
+          from: { transform: 'translateX(calc(100% + 1rem))' },
+          to: { transform: 'translateX(0)' },
+        },
+        fadeOut: {
+          from: { opacity: '1' },
+          to: { opacity: '0' },
+        },
+        swipeOut: {
+          from: { transform: 'translateX(var(--radix-toast-swipe-end-x))' },
+          to: { transform: 'translateX(calc(100% + 1rem))' },
+        },
+      },
       colors: {
         // SDF label colors
         solid: {

@@ -152,11 +152,18 @@ export async function deleteProject(projectId: string): Promise<void> {
 }
 
 // Point cloud endpoints
+export interface UploadProgress {
+  loaded: number
+  total: number
+  percent: number
+}
+
 export async function uploadPointCloud(
   projectId: string,
   file: File,
   estimateNormals = true,
-  normalK = 16
+  normalK = 16,
+  onProgress?: (progress: UploadProgress) => void
 ): Promise<PointCloudUploadResponse> {
   const formData = new FormData()
   formData.append('file', file)
@@ -166,6 +173,41 @@ export async function uploadPointCloud(
     normal_k: String(normalK),
   })
 
+  // Use XMLHttpRequest for progress events if callback provided
+  if (onProgress) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      xhr.open('POST', `${API_BASE}/projects/${projectId}/pointcloud?${params}`)
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          onProgress({
+            loaded: e.loaded,
+            total: e.total,
+            percent: Math.round((e.loaded / e.total) * 100),
+          })
+        }
+      }
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(JSON.parse(xhr.responseText))
+        } else {
+          try {
+            const error = JSON.parse(xhr.responseText)
+            reject(new Error(error.detail || 'Upload failed'))
+          } catch {
+            reject(new Error('Upload failed'))
+          }
+        }
+      }
+
+      xhr.onerror = () => reject(new Error('Network error'))
+      xhr.send(formData)
+    })
+  }
+
+  // Standard fetch for simple uploads
   const response = await fetch(
     `${API_BASE}/projects/${projectId}/pointcloud?${params}`,
     {

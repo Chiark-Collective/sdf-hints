@@ -1,7 +1,7 @@
 // ABOUTME: Unit tests for useKeyboardShortcuts hook
 // ABOUTME: Tests keyboard shortcuts for mode switching and tool selection
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useKeyboardShortcuts } from './useKeyboardShortcuts'
 import { useProjectStore } from '../stores/projectStore'

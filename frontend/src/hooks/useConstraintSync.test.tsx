@@ -10,7 +10,7 @@ import type { ReactNode } from 'react'
 
 // Mock fetch globally
 const mockFetch = vi.fn()
-global.fetch = mockFetch
+globalThis.fetch = mockFetch
 
 function createWrapper() {
   const queryClient = new QueryClient({

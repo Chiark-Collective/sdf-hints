@@ -13,12 +13,14 @@ import {
 import * as Dialog from '@radix-ui/react-dialog'
 
 import { useProjectStore } from '../../stores/projectStore'
+import { toast } from '../../stores/toastStore'
 import {
   listProjects,
   createProject,
   deleteProject,
   uploadPointCloud,
   type ProjectCreate,
+  type UploadProgress,
 } from '../../services/api'
 
 export function ProjectPanel() {
@@ -84,6 +86,10 @@ function ProjectItem({ project, isSelected, onSelect }: ProjectItemProps) {
     mutationFn: () => deleteProject(project.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] })
+      toast.info('Project deleted')
+    },
+    onError: (error: Error) => {
+      toast.error('Failed to delete project', error.message)
     },
   })
 
@@ -128,6 +134,10 @@ function CreateProjectDialog() {
       setCurrentProject(project.id)
       setOpen(false)
       setName('')
+      toast.success('Project created', `"${project.name}" is ready`)
+    },
+    onError: (error: Error) => {
+      toast.error('Failed to create project', error.message)
     },
   })
 
@@ -190,12 +200,17 @@ interface UploadDropzoneProps {
 
 function UploadDropzone({ projectId }: UploadDropzoneProps) {
   const [isDragging, setIsDragging] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null)
   const queryClient = useQueryClient()
   const updateProject = useProjectStore((s) => s.updateProject)
 
   const uploadMutation = useMutation({
-    mutationFn: (file: File) => uploadPointCloud(projectId, file),
+    mutationFn: (file: File) =>
+      uploadPointCloud(projectId, file, true, 16, (progress) => {
+        setUploadProgress(progress)
+      }),
     onSuccess: (result) => {
+      setUploadProgress(null)
       queryClient.invalidateQueries({ queryKey: ['projects'] })
       queryClient.invalidateQueries({ queryKey: ['octree-metadata', projectId] })
       updateProject(projectId, {
@@ -205,6 +220,14 @@ function UploadDropzone({ projectId }: UploadDropzoneProps) {
         boundsLow: result.bounds_low,
         boundsHigh: result.bounds_high,
       })
+      toast.success(
+        'Point cloud uploaded',
+        `${result.point_count.toLocaleString()} points loaded`
+      )
+    },
+    onError: (error: Error) => {
+      setUploadProgress(null)
+      toast.error('Upload failed', error.message)
     },
   })
 
@@ -231,12 +254,14 @@ function UploadDropzone({ projectId }: UploadDropzoneProps) {
     [uploadMutation]
   )
 
+  const isUploading = uploadMutation.isPending
+
   return (
     <div
       className={`
         p-4 border-2 border-dashed rounded-lg text-center transition-colors
         ${isDragging ? 'border-blue-500 bg-blue-500/10' : 'border-gray-700 hover:border-gray-600'}
-        ${uploadMutation.isPending ? 'opacity-50 pointer-events-none' : ''}
+        ${isUploading ? 'pointer-events-none' : ''}
       `}
       onDragOver={(e) => {
         e.preventDefault()
@@ -245,22 +270,43 @@ function UploadDropzone({ projectId }: UploadDropzoneProps) {
       onDragLeave={() => setIsDragging(false)}
       onDrop={handleDrop}
     >
-      <UploadIcon className="w-8 h-8 mx-auto mb-2 text-gray-500" />
-      <p className="text-sm text-gray-400 mb-2">
-        {uploadMutation.isPending ? 'Uploading...' : 'Drop point cloud here'}
-      </p>
-      <label className="text-xs text-blue-400 hover:underline cursor-pointer">
-        or browse files
-        <input
-          type="file"
-          accept=".ply,.las,.laz,.csv,.npz,.parquet"
-          onChange={handleFileSelect}
-          className="hidden"
-        />
-      </label>
-      <p className="text-xs text-gray-600 mt-2">
-        PLY, LAS, LAZ, CSV, NPZ, Parquet
-      </p>
+      {isUploading ? (
+        <>
+          <div className="mb-2">
+            <div className="w-full bg-gray-700 rounded-full h-2">
+              <div
+                className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${uploadProgress?.percent ?? 0}%` }}
+              />
+            </div>
+          </div>
+          <p className="text-sm text-gray-400">
+            Uploading... {uploadProgress?.percent ?? 0}%
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            {uploadProgress ? `${(uploadProgress.loaded / 1024 / 1024).toFixed(1)} MB / ${(uploadProgress.total / 1024 / 1024).toFixed(1)} MB` : ''}
+          </p>
+        </>
+      ) : (
+        <>
+          <UploadIcon className="w-8 h-8 mx-auto mb-2 text-gray-500" />
+          <p className="text-sm text-gray-400 mb-2">
+            Drop point cloud here
+          </p>
+          <label className="text-xs text-blue-400 hover:underline cursor-pointer">
+            or browse files
+            <input
+              type="file"
+              accept=".ply,.las,.laz,.csv,.npz,.parquet"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+          </label>
+          <p className="text-xs text-gray-600 mt-2">
+            PLY, LAS, LAZ, CSV, NPZ, Parquet
+          </p>
+        </>
+      )}
     </div>
   )
 }

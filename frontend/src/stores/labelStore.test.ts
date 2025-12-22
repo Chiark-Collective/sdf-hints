@@ -3,7 +3,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useLabelStore } from './labelStore'
-import type { BoxConstraint, SphereConstraint, SignConvention } from './labelStore'
+import type { BoxConstraint, SphereConstraint } from './labelStore'
 
 describe('labelStore', () => {
   const projectId = 'test-project-id'

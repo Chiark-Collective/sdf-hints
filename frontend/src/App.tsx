@@ -6,6 +6,8 @@ import { OrbitControls, Stats, GizmoHelper, GizmoViewport } from '@react-three/d
 import { Leva } from 'leva'
 import { Suspense } from 'react'
 
+import { ToastProvider } from './components/ui/ToastProvider'
+import { ErrorBoundary } from './components/ui/ErrorBoundary'
 import { PointCloudViewer } from './components/canvas/PointCloudViewer'
 import { SelectionVolume } from './components/canvas/SelectionVolume'
 import { PrimitivePlacer } from './components/canvas/PrimitivePlacer'
@@ -88,47 +90,51 @@ export default function App() {
   useKeyboardShortcuts()
 
   return (
-    <div className="flex flex-col h-screen bg-gray-950">
-      {/* Top toolbar */}
-      <Toolbar />
+    <ErrorBoundary>
+      <ToastProvider>
+        <div className="flex flex-col h-screen bg-gray-950">
+          {/* Top toolbar */}
+          <Toolbar />
 
-      {/* Main content area */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left panel - Project & file management */}
-        <ProjectPanel />
+          {/* Main content area */}
+          <div className="flex flex-1 overflow-hidden">
+            {/* Left panel - Project & file management */}
+            <ProjectPanel />
 
-        {/* 3D Viewport */}
-        <div className="flex-1 relative canvas-container">
-          <Canvas
-            camera={{ position: [5, 5, 5], fov: 50 }}
-            gl={{ antialias: true, alpha: false }}
-            dpr={[1, 2]}
-          >
-            <color attach="background" args={['#0f0f0f']} />
-            <Scene />
-          </Canvas>
+            {/* 3D Viewport */}
+            <div className="flex-1 relative canvas-container">
+              <Canvas
+                camera={{ position: [5, 5, 5], fov: 50 }}
+                gl={{ antialias: true, alpha: false }}
+                dpr={[1, 2]}
+              >
+                <color attach="background" args={['#0f0f0f']} />
+                <Scene />
+              </Canvas>
 
-          {/* Leva controls (debug panel) */}
-          <Leva
-            collapsed
-            flat
-            titleBar={{ title: 'Debug Controls' }}
-            theme={{
-              colors: {
-                elevation1: '#1f1f1f',
-                elevation2: '#2a2a2a',
-                elevation3: '#3a3a3a',
-              },
-            }}
-          />
+              {/* Leva controls (debug panel) */}
+              <Leva
+                collapsed
+                flat
+                titleBar={{ title: 'Debug Controls' }}
+                theme={{
+                  colors: {
+                    elevation1: '#1f1f1f',
+                    elevation2: '#2a2a2a',
+                    elevation3: '#3a3a3a',
+                  },
+                }}
+              />
+            </div>
+
+            {/* Right panel - Label controls */}
+            <LabelPanel />
+          </div>
+
+          {/* Status bar */}
+          <StatusBar />
         </div>
-
-        {/* Right panel - Label controls */}
-        <LabelPanel />
-      </div>
-
-      {/* Status bar */}
-      <StatusBar />
-    </div>
+      </ToastProvider>
+    </ErrorBoundary>
   )
 }

@@ -12,6 +12,8 @@ import { useSliceStore } from '../../stores/sliceStore'
 import { useBrushStore } from '../../stores/brushStore'
 import { useSeedStore } from '../../stores/seedStore'
 import { useConstraintSync } from '../../hooks/useConstraintSync'
+import { toast } from '../../stores/toastStore'
+import { LoadingButton } from './Spinner'
 import { PrimitiveMode } from '../modes/PrimitiveMode'
 import { SliceMode } from '../modes/SliceMode'
 import { BrushMode } from '../modes/BrushMode'
@@ -287,6 +289,13 @@ function ExportSection({ projectId, constraintCount }: ExportSectionProps) {
       }),
     onSuccess: (data) => {
       setSampleCount(data.sample_count)
+      toast.success(
+        'Samples generated',
+        `${data.sample_count.toLocaleString()} training samples created`
+      )
+    },
+    onError: (error: Error) => {
+      toast.error('Generation failed', error.message)
     },
   })
 
@@ -302,19 +311,23 @@ function ExportSection({ projectId, constraintCount }: ExportSectionProps) {
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
+      toast.success('Export complete', 'Parquet file downloaded')
+    },
+    onError: (error: Error) => {
+      toast.error('Export failed', error.message)
     },
   })
 
   return (
     <div className="p-4 border-t border-gray-800 space-y-3">
       {/* Generate button */}
-      <button
+      <LoadingButton
         onClick={() => generateMutation.mutate()}
-        disabled={generateMutation.isPending}
+        loading={generateMutation.isPending}
         className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {generateMutation.isPending ? 'Generating...' : 'Generate Samples'}
-      </button>
+        Generate Samples
+      </LoadingButton>
 
       {/* Status */}
       {sampleCount !== null && (
@@ -333,14 +346,14 @@ function ExportSection({ projectId, constraintCount }: ExportSectionProps) {
 
       {/* Export button (shown after generation) */}
       {sampleCount !== null && (
-        <button
+        <LoadingButton
           onClick={() => exportMutation.mutate()}
-          disabled={exportMutation.isPending}
+          loading={exportMutation.isPending}
           className="w-full px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
         >
           <DownloadIcon className="w-4 h-4" />
-          {exportMutation.isPending ? 'Exporting...' : 'Export Parquet'}
-        </button>
+          Export Parquet
+        </LoadingButton>
       )}
 
       <p className="text-xs text-gray-500 text-center">
