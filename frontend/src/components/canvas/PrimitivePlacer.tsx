@@ -55,8 +55,8 @@ export function PrimitivePlacer({ projectId }: PrimitivePlacerProps) {
   // Ghost primitive position (follows mouse)
   const [ghostPosition, setGhostPosition] = useState<[number, number, number] | null>(null)
 
-  // Ground plane for raycasting
-  const groundPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0))
+  // Ground plane for raycasting (XZ plane at Y=0, matching the click mesh)
+  const groundPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0))
   const intersectPoint = useRef(new THREE.Vector3())
 
   // Track if we're in primitive mode
@@ -239,11 +239,10 @@ export function PrimitivePlacer({ projectId }: PrimitivePlacerProps) {
       <mesh
         position={[0, 0, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
-        visible={false}
         onClick={handleClick}
       >
         <planeGeometry args={[1000, 1000]} />
-        <meshBasicMaterial transparent opacity={0} />
+        <meshBasicMaterial transparent opacity={0} side={THREE.DoubleSide} />
       </mesh>
     </group>
   )

@@ -9,7 +9,6 @@ from importlib import resources
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import laspy
 import numpy as np
 import pandas as pd
 import trimesh
@@ -47,27 +46,15 @@ def list_trenchfoot_scenarios() -> list[ScenarioInfo]:
     try:
         import survi_scenarios
 
-        base = resources.files(survi_scenarios).joinpath("data/scenarios/trenchfoot")
-
-        scenarios = []
-        for item in base.iterdir():
-            if item.is_dir() and item.name.startswith("S"):
-                # Read scene.json for description
-                scene_json = item.joinpath("scene.json")
-                description = f"Trenchfoot scenario {item.name}"
-
-                scenarios.append(
-                    ScenarioInfo(
-                        name=item.name,
-                        description=description,
-                        category="trenchfoot",
-                        preview_url=None,  # Could serve preview images via API
-                    )
-                )
-
-        # Sort by name
-        scenarios.sort(key=lambda s: s.name)
-        return scenarios
+        scenario_names = survi_scenarios.list_trenchfoot_scenarios()
+        return [
+            ScenarioInfo(
+                name=name,
+                description=f"Trenchfoot scenario: {name.replace('_', ' ').title()}",
+                category="trenchfoot",
+            )
+            for name in scenario_names
+        ]
 
     except ImportError:
         logger.warning("survi_scenarios package not available")
@@ -102,105 +89,65 @@ def list_sdf_scenarios() -> list[ScenarioInfo]:
 
 def load_trenchfoot_scenario(
     scenario_name: str,
-    variant: str = "culled",
-    resolution: float = 0.050,
+    num_samples: int = 50000,
 ) -> LoadedScenario:
     """
-    Load a trenchfoot scenario by name.
+    Load a trenchfoot scenario by name using the survi_scenarios API.
 
     Args:
         scenario_name: Name of the scenario (e.g., "S01_straight_vwalls")
-        variant: "culled" or "full" point cloud variant
-        resolution: Point cloud resolution (default 0.050)
+        num_samples: Number of points to sample from mesh (default 50000)
 
     Returns:
         LoadedScenario with point cloud DataFrame and mesh
     """
     import survi_scenarios
 
-    base = resources.files(survi_scenarios).joinpath("data/scenarios/trenchfoot")
-    scenario_dir = base.joinpath(scenario_name)
+    # Use the new survi_scenarios loader
+    surface = survi_scenarios.load_trenchfoot_scenario(scenario_name)
 
-    if not scenario_dir.is_dir():
-        raise ValueError(f"Scenario not found: {scenario_name}")
+    # Load mesh from the path in metadata
+    mesh_path = surface.metadata.get("mesh_path")
+    if not mesh_path:
+        raise ValueError(f"No mesh path in scenario metadata: {scenario_name}")
 
-    # Load point cloud (LAS format)
-    resolution_str = f"resolution{resolution:.3f}".replace(".", "p")
-    las_path = scenario_dir.joinpath(f"point_clouds/{variant}/{resolution_str}.las")
-
-    if not las_path.is_file():
-        # Try to find any LAS file in the variant directory
-        variant_dir = scenario_dir.joinpath(f"point_clouds/{variant}")
-        las_files = list(variant_dir.iterdir()) if variant_dir.is_dir() else []
-        las_files = [f for f in las_files if f.name.endswith(".las")]
-        if las_files:
-            las_path = las_files[0]
+    mesh = trimesh.load(mesh_path)
+    if isinstance(mesh, trimesh.Scene):
+        meshes = [g for g in mesh.geometry.values() if isinstance(g, trimesh.Trimesh)]
+        if meshes:
+            mesh = trimesh.util.concatenate(meshes)
         else:
-            raise ValueError(f"No point cloud found for {scenario_name}/{variant}")
+            raise ValueError(f"No mesh geometry found: {scenario_name}")
 
-    # Read LAS file
-    with resources.as_file(las_path) as path:
-        las = laspy.read(str(path))
+    # Sample points uniformly from mesh surface
+    points, face_indices = mesh.sample(num_samples, return_index=True)
+
+    # Compute face normals for sampled points
+    face_normals = mesh.face_normals[face_indices]
 
     points_data = {
-        "x": np.asarray(las.x, dtype=np.float64),
-        "y": np.asarray(las.y, dtype=np.float64),
-        "z": np.asarray(las.z, dtype=np.float64),
+        "x": points[:, 0].astype(np.float64),
+        "y": points[:, 1].astype(np.float64),
+        "z": points[:, 2].astype(np.float64),
+        "nx": face_normals[:, 0].astype(np.float64),
+        "ny": face_normals[:, 1].astype(np.float64),
+        "nz": face_normals[:, 2].astype(np.float64),
     }
-
-    # Check for normals
-    if hasattr(las, "NormalX") and hasattr(las, "NormalY") and hasattr(las, "NormalZ"):
-        points_data["nx"] = np.asarray(las.NormalX, dtype=np.float64)
-        points_data["ny"] = np.asarray(las.NormalY, dtype=np.float64)
-        points_data["nz"] = np.asarray(las.NormalZ, dtype=np.float64)
 
     points_df = pd.DataFrame(points_data)
 
-    # Load mesh
-    mesh = None
-    mesh_candidates = [
-        scenario_dir.joinpath("meshes/trench_scene_culled.obj"),
-        scenario_dir.joinpath("trench_scene.obj"),
-        scenario_dir.joinpath("meshes/trench_scene.obj"),
-    ]
+    # Compute bounds from mesh
+    bounds = (mesh.bounds[0], mesh.bounds[1])
 
-    for mesh_path in mesh_candidates:
-        if mesh_path.is_file():
-            try:
-                with resources.as_file(mesh_path) as path:
-                    loaded = trimesh.load(str(path))
-                    if isinstance(loaded, trimesh.Scene):
-                        # Concatenate all geometries
-                        meshes = [g for g in loaded.geometry.values() if isinstance(g, trimesh.Trimesh)]
-                        if meshes:
-                            mesh = trimesh.util.concatenate(meshes)
-                    else:
-                        mesh = loaded
-                    break
-            except Exception as e:
-                logger.warning(f"Failed to load mesh {mesh_path}: {e}")
-
-    # Compute bounds
-    coords = points_df[["x", "y", "z"]].values
-    bounds = (coords.min(axis=0), coords.max(axis=0))
-
-    # Load metadata
+    # Build metadata
     metadata = {
         "scenario": scenario_name,
-        "variant": variant,
         "point_count": len(points_df),
-        "has_normals": "nx" in points_df.columns,
-        "has_mesh": mesh is not None,
+        "has_normals": True,
+        "has_mesh": True,
+        "sampled_from_mesh": True,
+        **surface.metadata,
     }
-
-    # Try to load scene.json
-    scene_json_path = scenario_dir.joinpath("scene.json")
-    if scene_json_path.is_file():
-        import json
-
-        with resources.as_file(scene_json_path) as path:
-            with open(path) as f:
-                metadata["scene_spec"] = json.load(f)
 
     return LoadedScenario(
         name=scenario_name,

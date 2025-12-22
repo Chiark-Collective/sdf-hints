@@ -114,47 +114,26 @@ export function BrushPainter({ projectId, points, depthAware: _depthAware }: Bru
     [points, brushRadius]
   )
 
+  // Ground plane for raycasting (XZ plane at Y=0)
+  const groundPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0))
+  const intersectPoint = useRef(new THREE.Vector3())
+
   // Update brush position on mouse move
   useFrame(() => {
-    if (!isActive || !points) {
+    if (!isActive) {
       setBrushPosition(null)
       return
     }
 
     raycaster.setFromCamera(pointer, camera)
 
-    // Find intersection with point cloud (approximate via bounding sphere)
-    // For simplicity, use a plane at z=0 or find nearest point
-    const planeNormal = new THREE.Vector3(0, 0, 1)
-    const planePoint = new THREE.Vector3(0, 0, 0)
-    const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(planeNormal, planePoint)
-
-    const intersection = new THREE.Vector3()
-    if (raycaster.ray.intersectPlane(plane, intersection)) {
-      // Find nearest point to intersection
-      let nearestDist = Infinity
-      let nearestPoint: THREE.Vector3 | null = null
-      const numPoints = points.length / 3
-
-      // Sample subset for performance
-      const sampleStep = Math.max(1, Math.floor(numPoints / 10000))
-      for (let i = 0; i < numPoints; i += sampleStep) {
-        const px = points[i * 3]
-        const py = points[i * 3 + 1]
-        const pz = points[i * 3 + 2]
-
-        const dist = intersection.distanceToSquared(new THREE.Vector3(px, py, pz))
-        if (dist < nearestDist) {
-          nearestDist = dist
-          nearestPoint = new THREE.Vector3(px, py, pz)
-        }
-      }
-
-      if (nearestPoint && nearestDist < 100) {
-        setBrushPosition([nearestPoint.x, nearestPoint.y, nearestPoint.z])
-      } else {
-        setBrushPosition([intersection.x, intersection.y, intersection.z])
-      }
+    // Use ground plane for brush position (points array not needed for cursor)
+    if (raycaster.ray.intersectPlane(groundPlane.current, intersectPoint.current)) {
+      setBrushPosition([
+        intersectPoint.current.x,
+        intersectPoint.current.y,
+        intersectPoint.current.z,
+      ])
     }
   })
 

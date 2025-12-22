@@ -79,8 +79,8 @@ function Scene() {
         <GizmoViewport axisColors={['#f87171', '#4ade80', '#60a5fa']} labelColor="white" />
       </GizmoHelper>
 
-      {/* Performance stats (dev only) */}
-      {import.meta.env.DEV && <Stats />}
+      {/* Performance stats (dev only) - positioned via CSS in index.css */}
+      {import.meta.env.DEV && <Stats className="stats-panel" />}
     </>
   )
 }

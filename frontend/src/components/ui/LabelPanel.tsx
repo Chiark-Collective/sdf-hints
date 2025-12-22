@@ -4,7 +4,7 @@
 import { useMemo, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import * as ToggleGroup from '@radix-ui/react-toggle-group'
-import { TrashIcon, DownloadIcon } from '@radix-ui/react-icons'
+import { TrashIcon, DownloadIcon, ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons'
 
 import { useProjectStore, type LabelType } from '../../stores/projectStore'
 import { useLabelStore, type Constraint } from '../../stores/labelStore'
@@ -103,6 +103,7 @@ function MLImportModePanel({ projectId }: { projectId: string }) {
 }
 
 export function LabelPanel() {
+  const [collapsed, setCollapsed] = useState(false)
   const activeLabel = useProjectStore((s) => s.activeLabel)
   const setActiveLabel = useProjectStore((s) => s.setActiveLabel)
   const mode = useProjectStore((s) => s.mode)
@@ -127,11 +128,61 @@ export function LabelPanel() {
     return groups
   }, [constraints])
 
+  // Collapsed state - minimal view with just label buttons
+  if (collapsed) {
+    return (
+      <div className="w-14 flex-shrink-0 flex flex-col bg-gray-900 border-l border-gray-800">
+        {/* Expand button */}
+        <button
+          onClick={() => setCollapsed(false)}
+          className="p-2 m-1 text-gray-400 hover:text-white hover:bg-gray-800 rounded"
+          title="Expand panel"
+        >
+          <ChevronLeftIcon className="w-5 h-5" />
+        </button>
+
+        {/* Compact label buttons */}
+        <div className="flex flex-col gap-1 p-2">
+          {labelOptions.map(({ value, color }) => (
+            <button
+              key={value}
+              onClick={() => setActiveLabel(value)}
+              className={`w-10 h-10 rounded-lg border transition-colors ${
+                activeLabel === value
+                  ? `border-${value} ring-2 ring-${value}`
+                  : 'border-gray-700 hover:border-gray-600'
+              }`}
+              title={value.charAt(0).toUpperCase() + value.slice(1)}
+            >
+              <div className={`w-4 h-4 rounded mx-auto ${color}`} />
+            </button>
+          ))}
+        </div>
+
+        {/* Constraint count badge */}
+        {constraints.length > 0 && (
+          <div className="mx-auto mt-2 px-2 py-1 bg-gray-800 rounded text-xs text-gray-400">
+            {constraints.length}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
-    <div className="w-72 flex flex-col bg-gray-900 border-l border-gray-800">
+    <div className="w-72 flex-shrink-0 flex flex-col bg-gray-900 border-l border-gray-800">
       {/* Label selection */}
       <div className="p-4 border-b border-gray-800">
-        <h3 className="text-sm font-medium mb-3">Active Label</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-medium">Active Label</h3>
+          <button
+            onClick={() => setCollapsed(true)}
+            className="p-1 text-gray-500 hover:text-white hover:bg-gray-800 rounded"
+            title="Collapse panel"
+          >
+            <ChevronRightIcon className="w-4 h-4" />
+          </button>
+        </div>
         <ToggleGroup.Root
           type="single"
           value={activeLabel}

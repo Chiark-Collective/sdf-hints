@@ -21,8 +21,9 @@ dependencies = [
     "python-multipart>=0.0.6",
     "aiofiles>=23.2.0",
     # Scenario datasets
-    "surface-scenarios[mesh]>=0.2.0",
+    "surface-scenarios[mesh]>=0.3.0",
     "trenchfoot>=0.2.3",
+    "networkx>=3.6.1",
 ]
 
 [project.optional-dependencies]

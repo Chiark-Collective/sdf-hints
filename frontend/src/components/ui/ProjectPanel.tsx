@@ -9,6 +9,8 @@ import {
   TrashIcon,
   UploadIcon,
   ChevronRightIcon,
+  ChevronLeftIcon,
+  DoubleArrowLeftIcon,
 } from '@radix-ui/react-icons'
 import * as Dialog from '@radix-ui/react-dialog'
 
@@ -26,6 +28,7 @@ import {
 } from '../../services/api'
 
 export function ProjectPanel() {
+  const [collapsed, setCollapsed] = useState(false)
   const currentProjectId = useProjectStore((s) => s.currentProjectId)
   const setCurrentProject = useProjectStore((s) => s.setCurrentProject)
 
@@ -37,11 +40,35 @@ export function ProjectPanel() {
 
   const projects = data?.projects ?? []
 
+  // Collapsed state - just show toggle button
+  if (collapsed) {
+    return (
+      <div className="w-10 flex-shrink-0 flex flex-col bg-gray-900 border-r border-gray-800">
+        <button
+          onClick={() => setCollapsed(false)}
+          className="p-2 m-1 text-gray-400 hover:text-white hover:bg-gray-800 rounded"
+          title="Expand panel"
+        >
+          <ChevronRightIcon className="w-5 h-5" />
+        </button>
+      </div>
+    )
+  }
+
   return (
-    <div className="w-64 flex flex-col bg-gray-900 border-r border-gray-800">
+    <div className="w-64 flex-shrink-0 flex flex-col bg-gray-900 border-r border-gray-800">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
-        <span className="font-medium text-sm">Projects</span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setCollapsed(true)}
+            className="p-1 text-gray-500 hover:text-white hover:bg-gray-800 rounded"
+            title="Collapse panel"
+          >
+            <ChevronLeftIcon className="w-4 h-4" />
+          </button>
+          <span className="font-medium text-sm">Projects</span>
+        </div>
         <CreateProjectDialog />
       </div>
 
@@ -65,12 +92,22 @@ export function ProjectPanel() {
         )}
       </div>
 
-      {/* Upload/Scenarios section (when project selected) */}
-      {currentProjectId && (
-        <div className="border-t border-gray-800">
+      {/* Upload/Scenarios section */}
+      <div className="border-t border-gray-800">
+        {currentProjectId ? (
           <DataSourceTabs projectId={currentProjectId} />
-        </div>
-      )}
+        ) : (
+          <div className="p-4">
+            <p className="text-xs text-gray-500 mb-2">Select or create a project to load data</p>
+            <button
+              className="w-full px-3 py-2 text-xs font-medium text-gray-400 bg-gray-800 rounded hover:bg-gray-700 transition-colors"
+              disabled
+            >
+              Demo Data ✨
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -78,7 +115,8 @@ export function ProjectPanel() {
 type DataSourceTab = 'upload' | 'scenarios'
 
 function DataSourceTabs({ projectId }: { projectId: string }) {
-  const [activeTab, setActiveTab] = useState<DataSourceTab>('upload')
+  // Default to scenarios tab for easier discovery
+  const [activeTab, setActiveTab] = useState<DataSourceTab>('scenarios')
 
   return (
     <div>
@@ -92,7 +130,7 @@ function DataSourceTabs({ projectId }: { projectId: string }) {
           }`}
           onClick={() => setActiveTab('upload')}
         >
-          Upload
+          Upload File
         </button>
         <button
           className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${
@@ -102,7 +140,7 @@ function DataSourceTabs({ projectId }: { projectId: string }) {
           }`}
           onClick={() => setActiveTab('scenarios')}
         >
-          Scenarios
+          Demo Data ✨
         </button>
       </div>
 

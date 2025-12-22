@@ -287,6 +287,15 @@ wheels = [
 ]
 
 [[package]]
+name = "networkx"
+version = "3.6.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6a/51/63fe664f3908c97be9d2e4f1158eb633317598cfa6e1fc14af5383f17512/networkx-3.6.1.tar.gz", hash = "sha256:26b7c357accc0c8cde558ad486283728b65b6a95d85ee1cd66bafab4c8168509", size = 2517025 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9e/c9/b2622292ea83fbb4ec318f5b9ab867d0a28ab43c5717bb85b0a5f6b3b0a4/networkx-3.6.1-py3-none-any.whl", hash = "sha256:d47fbf302e7d9cbbb9e2555a0d267983d2aa476bac30e90dfbe5669bd57f3762", size = 2068504 },
+]
+
+[[package]]
 name = "numpy"
 version = "2.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -791,6 +800,7 @@ dependencies = [
     { name = "aiofiles" },
     { name = "fastapi" },
     { name = "laspy", extra = ["laszip"] },
+    { name = "networkx" },
     { name = "numpy" },
     { name = "pandas" },
     { name = "pyarrow" },
@@ -824,6 +834,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.109.0" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.26.0" },
     { name = "laspy", extras = ["laszip"], specifier = ">=2.5.0" },
+    { name = "networkx", specifier = ">=3.6.1" },
     { name = "numpy", specifier = ">=1.26.0" },
     { name = "pandas", specifier = ">=2.1.0" },
     { name = "pyarrow", specifier = ">=14.0.0" },
@@ -835,7 +846,7 @@ requires-dist = [
     { name = "python-multipart", specifier = ">=0.0.6" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.0" },
     { name = "scipy", specifier = ">=1.11.0" },
-    { name = "surface-scenarios", extras = ["mesh"], specifier = ">=0.2.0" },
+    { name = "surface-scenarios", extras = ["mesh"], specifier = ">=0.3.0" },
     { name = "trenchfoot", specifier = ">=0.2.3" },
     { name = "trimesh", specifier = ">=4.0.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.27.0" },
@@ -919,16 +930,16 @@ wheels = [
 
 [[package]]
 name = "surface-scenarios"
-version = "0.2.0"
+version = "0.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
     { name = "pandas" },
     { name = "shapely" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f2/44/9d15d07fe5f92c1b5920923daba3c28d635fba659aad2cf54b56f75f9a35/surface_scenarios-0.2.0.tar.gz", hash = "sha256:8a202856674e9db67062032dd8c799a2994b614da76ca514a959d14bd581c7b4", size = 5054033 }
+sdist = { url = "https://files.pythonhosted.org/packages/0f/56/89a5e2bf924749fd51d0926f9df259b0f7915b1f7a3b14d54f361d3e17d0/surface_scenarios-0.3.0.tar.gz", hash = "sha256:78139264dc7dee196f228ee9520134a1e41bdcbb4e773a774bbf3de8fc0ebc66", size = 27081 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/00/2d/2d7e476fc2ccedcccc267c799ea291a2ae73d7ebfa444b48f9de57a2ec4a/surface_scenarios-0.2.0-py3-none-any.whl", hash = "sha256:9cf4cc347c56682bad2075027c76f05296b17fdd96d14a1aeae1e1c092bb1dde", size = 5146906 },
+    { url = "https://files.pythonhosted.org/packages/50/6e/3d462b4e00b8a57d1ed1d7096708b1e7a7ddaeb5328989fd85ec45df58a6/surface_scenarios-0.3.0-py3-none-any.whl", hash = "sha256:cbf3797754f3538f186b757a4be27abddb73f08f5d85b68dee468fe68992270d", size = 35708 },
 ]
 
 [package.optional-dependencies]

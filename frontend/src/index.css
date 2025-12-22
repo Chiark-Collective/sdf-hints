@@ -61,3 +61,11 @@ body {
 .label-unlabeled {
   @apply text-unlabeled bg-unlabeled/20 border-unlabeled;
 }
+
+/* Stats/FPS panel positioning - move to bottom-left to avoid overlapping title */
+.stats-panel {
+  position: absolute !important;
+  left: 10px !important;
+  top: auto !important;
+  bottom: 10px !important;
+}
