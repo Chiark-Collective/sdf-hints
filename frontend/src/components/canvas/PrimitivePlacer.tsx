@@ -363,7 +363,14 @@ function PlacingPrimitiveView({
   onConfirm,
 }: PlacingPrimitiveViewProps) {
   const meshRef = useRef<THREE.Mesh>(null)
+  const [meshReady, setMeshReady] = useState(false)
   const color = COLORS[label]
+
+  // Track when mesh is mounted
+  const setMeshRef = useCallback((mesh: THREE.Mesh | null) => {
+    meshRef.current = mesh
+    setMeshReady(!!mesh)
+  }, [])
 
   // Handle transform changes
   const handleTransformChange = useCallback(() => {
@@ -395,44 +402,48 @@ function PlacingPrimitiveView({
 
   return (
     <group>
-      {meshRef.current && (
+      {meshReady && meshRef.current && (
         <TransformControls
           object={meshRef.current}
           mode={transformMode}
-          onObjectChange={handleTransformChange}
           onMouseUp={handleTransformChange}
         />
       )}
 
-      {primitive.type === 'box' && primitive.halfExtents && (() => {
-        const dims = primitive.halfExtents
-        const geometryKey = `placing-box-${dims[0]}-${dims[1]}-${dims[2]}`
-        return (
-          <mesh ref={meshRef} position={primitive.position}>
-            <boxGeometry
-              key={geometryKey}
-              args={[dims[0] * 2, dims[1] * 2, dims[2] * 2]}
+      {primitive.type === 'box' && primitive.halfExtents && (
+        <mesh ref={setMeshRef} position={primitive.position}>
+          <boxGeometry
+            args={[
+              primitive.halfExtents[0] * 2,
+              primitive.halfExtents[1] * 2,
+              primitive.halfExtents[2] * 2,
+            ]}
+          />
+          <meshBasicMaterial color={color} transparent opacity={0.4} side={THREE.DoubleSide} />
+          <lineSegments>
+            <edgesGeometry
+              args={[
+                new THREE.BoxGeometry(
+                  primitive.halfExtents[0] * 2,
+                  primitive.halfExtents[1] * 2,
+                  primitive.halfExtents[2] * 2
+                ),
+              ]}
             />
-            <meshBasicMaterial color={color} transparent opacity={0.4} />
-            <lineSegments key={`edges-${geometryKey}`}>
-              <edgesGeometry
-                args={[new THREE.BoxGeometry(dims[0] * 2, dims[1] * 2, dims[2] * 2)]}
-              />
-              <lineBasicMaterial color={color} linewidth={2} />
-            </lineSegments>
-          </mesh>
-        )
-      })()}
+            <lineBasicMaterial color={color} linewidth={2} />
+          </lineSegments>
+        </mesh>
+      )}
 
       {primitive.type === 'sphere' && primitive.radius && (
-        <mesh ref={meshRef} position={primitive.position}>
+        <mesh ref={setMeshRef} position={primitive.position}>
           <sphereGeometry key={`placing-sphere-${primitive.radius}`} args={[primitive.radius, 32, 32]} />
           <meshBasicMaterial color={color} transparent opacity={0.4} />
         </mesh>
       )}
 
       {primitive.type === 'halfspace' && primitive.normal && (
-        <group ref={meshRef as any} position={primitive.position}>
+        <group ref={setMeshRef as any} position={primitive.position}>
           <mesh rotation={[-Math.PI / 2, 0, 0]}>
             <planeGeometry args={[10, 10]} />
             <meshBasicMaterial
@@ -456,7 +467,7 @@ function PlacingPrimitiveView({
       )}
 
       {primitive.type === 'cylinder' && primitive.radius && primitive.height && (
-        <mesh ref={meshRef} position={primitive.position}>
+        <mesh ref={setMeshRef} position={primitive.position}>
           <cylinderGeometry
             key={`placing-cylinder-${primitive.radius}-${primitive.height}`}
             args={[primitive.radius, primitive.radius, primitive.height, 32]}
