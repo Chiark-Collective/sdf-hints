@@ -90,6 +90,7 @@ def list_sdf_scenarios() -> list[ScenarioInfo]:
 def load_trenchfoot_scenario(
     scenario_name: str,
     num_samples: int = 50000,
+    variant: str | None = None,
 ) -> LoadedScenario:
     """
     Load a trenchfoot scenario by name using the survi_scenarios API.
@@ -97,10 +98,13 @@ def load_trenchfoot_scenario(
     Args:
         scenario_name: Name of the scenario (e.g., "S01_straight_vwalls")
         num_samples: Number of points to sample from mesh (default 50000)
+        variant: Optional variant name (not currently used, reserved for future)
 
     Returns:
         LoadedScenario with point cloud DataFrame and mesh
     """
+    # Note: variant parameter reserved for future use
+    _ = variant
     import survi_scenarios
 
     # Use the new survi_scenarios loader
