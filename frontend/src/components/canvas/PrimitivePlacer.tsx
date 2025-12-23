@@ -429,7 +429,7 @@ function PlacingPrimitiveView({
       {primitive.type === 'sphere' && primitive.radius && (
         <mesh ref={setMeshRef} position={primitive.position}>
           <sphereGeometry key={`placing-sphere-${primitive.radius}`} args={[primitive.radius, 32, 32]} />
-          <meshBasicMaterial color={color} transparent opacity={0.4} />
+          <meshBasicMaterial color={color} transparent opacity={0.4} side={THREE.DoubleSide} />
         </mesh>
       )}
 
@@ -463,7 +463,7 @@ function PlacingPrimitiveView({
             key={`placing-cylinder-${primitive.radius}-${primitive.height}`}
             args={[primitive.radius, primitive.radius, primitive.height, 32]}
           />
-          <meshBasicMaterial color={color} transparent opacity={0.4} />
+          <meshBasicMaterial color={color} transparent opacity={0.4} side={THREE.DoubleSide} />
         </mesh>
       )}
     </group>
@@ -586,6 +586,7 @@ function ConstraintView({
               color={color}
               transparent
               opacity={isSelected ? 0.5 : 0.3}
+              side={THREE.DoubleSide}
             />
             <lineSegments key={`edges-${geometryKey}`}>
               <edgesGeometry
@@ -613,6 +614,7 @@ function ConstraintView({
               color={color}
               transparent
               opacity={isSelected ? 0.5 : 0.3}
+              side={THREE.DoubleSide}
             />
           </mesh>
         )
@@ -669,6 +671,7 @@ function ConstraintView({
               color={color}
               transparent
               opacity={isSelected ? 0.5 : 0.3}
+              side={THREE.DoubleSide}
             />
           </mesh>
         )
