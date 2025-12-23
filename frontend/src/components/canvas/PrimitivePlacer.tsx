@@ -404,34 +404,29 @@ function PlacingPrimitiveView({
         />
       )}
 
-      {primitive.type === 'box' && primitive.halfExtents && (
-        <mesh ref={meshRef} position={primitive.position}>
-          <boxGeometry
-            args={[
-              primitive.halfExtents[0] * 2,
-              primitive.halfExtents[1] * 2,
-              primitive.halfExtents[2] * 2,
-            ]}
-          />
-          <meshBasicMaterial color={color} transparent opacity={0.4} />
-          <lineSegments>
-            <edgesGeometry
-              args={[
-                new THREE.BoxGeometry(
-                  primitive.halfExtents[0] * 2,
-                  primitive.halfExtents[1] * 2,
-                  primitive.halfExtents[2] * 2
-                ),
-              ]}
+      {primitive.type === 'box' && primitive.halfExtents && (() => {
+        const dims = primitive.halfExtents
+        const geometryKey = `placing-box-${dims[0]}-${dims[1]}-${dims[2]}`
+        return (
+          <mesh ref={meshRef} position={primitive.position}>
+            <boxGeometry
+              key={geometryKey}
+              args={[dims[0] * 2, dims[1] * 2, dims[2] * 2]}
             />
-            <lineBasicMaterial color={color} linewidth={2} />
-          </lineSegments>
-        </mesh>
-      )}
+            <meshBasicMaterial color={color} transparent opacity={0.4} />
+            <lineSegments key={`edges-${geometryKey}`}>
+              <edgesGeometry
+                args={[new THREE.BoxGeometry(dims[0] * 2, dims[1] * 2, dims[2] * 2)]}
+              />
+              <lineBasicMaterial color={color} linewidth={2} />
+            </lineSegments>
+          </mesh>
+        )
+      })()}
 
       {primitive.type === 'sphere' && primitive.radius && (
         <mesh ref={meshRef} position={primitive.position}>
-          <sphereGeometry args={[primitive.radius, 32, 32]} />
+          <sphereGeometry key={`placing-sphere-${primitive.radius}`} args={[primitive.radius, 32, 32]} />
           <meshBasicMaterial color={color} transparent opacity={0.4} />
         </mesh>
       )}
@@ -462,7 +457,10 @@ function PlacingPrimitiveView({
 
       {primitive.type === 'cylinder' && primitive.radius && primitive.height && (
         <mesh ref={meshRef} position={primitive.position}>
-          <cylinderGeometry args={[primitive.radius, primitive.radius, primitive.height, 32]} />
+          <cylinderGeometry
+            key={`placing-cylinder-${primitive.radius}-${primitive.height}`}
+            args={[primitive.radius, primitive.radius, primitive.height, 32]}
+          />
           <meshBasicMaterial color={color} transparent opacity={0.4} />
         </mesh>
       )}
