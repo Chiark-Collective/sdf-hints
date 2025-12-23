@@ -62,8 +62,9 @@ export function PrimitivePlacer({ projectId }: PrimitivePlacerProps) {
   // Track if we're in primitive mode
   const isActive = mode === 'primitive'
 
-  // Transform mode: translate (G), rotate (R), scale (S)
-  const [transformMode, setTransformMode] = useState<'translate' | 'rotate' | 'scale'>('translate')
+  // Transform mode from store
+  const transformMode = usePrimitiveStore((s) => s.transformMode)
+  const setTransformMode = usePrimitiveStore((s) => s.setTransformMode)
 
   // Update ghost position on mouse move
   useFrame(() => {
@@ -87,7 +88,7 @@ export function PrimitivePlacer({ projectId }: PrimitivePlacerProps) {
 
   // Handle click to place primitive
   const handleClick = useCallback(
-    (event: THREE.Event) => {
+    (_event: THREE.Event) => {
       if (!isActive) return
 
       // Don't start placing if a constraint is already selected (press Escape to deselect)
@@ -245,7 +246,6 @@ export function PrimitivePlacer({ projectId }: PrimitivePlacerProps) {
           label={activeLabel}
           transformMode={transformMode}
           onUpdate={updatePlacing}
-          onConfirm={handleConfirmPlacement}
         />
       )}
 
@@ -276,22 +276,6 @@ export function PrimitivePlacer({ projectId }: PrimitivePlacerProps) {
         <meshBasicMaterial transparent opacity={0} side={THREE.DoubleSide} />
       </mesh>
 
-      {/* Transform mode indicator - fixed to bottom-left to avoid gizmo interference */}
-      <Html style={{ pointerEvents: 'none' }} calculatePosition={() => [10, window.innerHeight - 80]}>
-        <div className="pointer-events-none">
-          <div className="flex flex-col gap-1 bg-gray-900/90 rounded-lg px-3 py-2 text-xs">
-            <span className={transformMode === 'translate' ? 'text-blue-400 font-bold' : 'text-gray-400'}>
-              [W] Move
-            </span>
-            <span className={transformMode === 'rotate' ? 'text-blue-400 font-bold' : 'text-gray-400'}>
-              [E] Rotate
-            </span>
-            <span className={transformMode === 'scale' ? 'text-blue-400 font-bold' : 'text-gray-400'}>
-              [R] Scale
-            </span>
-          </div>
-        </div>
-      </Html>
     </group>
   )
 }
@@ -361,7 +345,6 @@ interface PlacingPrimitiveViewProps {
   label: LabelType
   transformMode: 'translate' | 'rotate' | 'scale'
   onUpdate: (updates: Partial<PlacingPrimitive>) => void
-  onConfirm: () => void
 }
 
 function PlacingPrimitiveView({
@@ -369,9 +352,8 @@ function PlacingPrimitiveView({
   label,
   transformMode,
   onUpdate,
-  onConfirm,
 }: PlacingPrimitiveViewProps) {
-  const meshRef = useRef<THREE.Mesh>(null)
+  const meshRef = useRef<THREE.Mesh | null>(null)
   const [meshReady, setMeshReady] = useState(false)
   const color = COLORS[label]
 
@@ -484,22 +466,9 @@ function PlacingPrimitiveView({
           <meshBasicMaterial color={color} transparent opacity={0.4} />
         </mesh>
       )}
-
-      {/* Confirm button - fixed to top-center to avoid gizmo interference */}
-      <Html calculatePosition={() => [window.innerWidth / 2 - 60, 60]}>
-        <button
-          onClick={onConfirm}
-          className="px-4 py-2 bg-blue-600 text-white text-sm rounded shadow-lg hover:bg-blue-700"
-        >
-          Confirm (Enter)
-        </button>
-      </Html>
     </group>
   )
 }
-
-// Import Html from drei for 3D UI
-import { Html } from '@react-three/drei'
 
 interface ConstraintViewProps {
   constraint: Constraint

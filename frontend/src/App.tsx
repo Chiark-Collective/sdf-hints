@@ -20,6 +20,7 @@ import { Toolbar } from './components/ui/Toolbar'
 import { ProjectPanel } from './components/ui/ProjectPanel'
 import { LabelPanel } from './components/ui/LabelPanel'
 import { StatusBar } from './components/ui/StatusBar'
+import { PrimitiveOverlay } from './components/ui/PrimitiveOverlay'
 import { useProjectStore } from './stores/projectStore'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 
@@ -120,6 +121,9 @@ export default function App() {
                 <color attach="background" args={['#0f0f0f']} />
                 <Scene />
               </Canvas>
+
+              {/* Primitive mode overlay UI */}
+              <PrimitiveOverlay />
 
               {/* Leva controls (debug panel) */}
               <Leva
