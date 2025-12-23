@@ -186,7 +186,7 @@ export function PrimitivePlacer({ projectId }: PrimitivePlacerProps) {
             selectConstraint(null)
           }
           break
-        // Transform mode shortcuts
+        // Transform mode shortcuts (T for scale to avoid conflict with S=Slice mode)
         case 'g':
         case 'G':
           setTransformMode('translate')
@@ -195,8 +195,8 @@ export function PrimitivePlacer({ projectId }: PrimitivePlacerProps) {
         case 'R':
           setTransformMode('rotate')
           break
-        case 's':
-        case 'S':
+        case 't':
+        case 'T':
           setTransformMode('scale')
           break
       }
@@ -274,7 +274,7 @@ export function PrimitivePlacer({ projectId }: PrimitivePlacerProps) {
               [R] Rotate
             </span>
             <span className={transformMode === 'scale' ? 'text-blue-400 font-bold' : 'text-gray-400'}>
-              [S] Scale
+              [T] Scale
             </span>
           </div>
         </div>
