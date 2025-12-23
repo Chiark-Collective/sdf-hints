@@ -402,15 +402,18 @@ function PlacingPrimitiveView({
       )}
 
       {primitive.type === 'box' && primitive.halfExtents && (
-        <mesh ref={setMeshRef} position={primitive.position}>
-          <boxGeometry
-            args={[
-              primitive.halfExtents[0] * 2,
-              primitive.halfExtents[1] * 2,
-              primitive.halfExtents[2] * 2,
-            ]}
-          />
-          <meshBasicMaterial color={color} transparent opacity={0.4} side={THREE.DoubleSide} />
+        <group ref={setMeshRef as any} position={primitive.position}>
+          <mesh>
+            <boxGeometry
+              key={`placing-box-${primitive.halfExtents[0]}-${primitive.halfExtents[1]}-${primitive.halfExtents[2]}`}
+              args={[
+                primitive.halfExtents[0] * 2,
+                primitive.halfExtents[1] * 2,
+                primitive.halfExtents[2] * 2,
+              ]}
+            />
+            <meshBasicMaterial color={color} transparent opacity={0.4} side={THREE.DoubleSide} depthWrite={false} />
+          </mesh>
           <lineSegments>
             <edgesGeometry
               args={[
@@ -421,15 +424,15 @@ function PlacingPrimitiveView({
                 ),
               ]}
             />
-            <lineBasicMaterial color={color} linewidth={2} />
+            <lineBasicMaterial color={color} />
           </lineSegments>
-        </mesh>
+        </group>
       )}
 
       {primitive.type === 'sphere' && primitive.radius && (
         <mesh ref={setMeshRef} position={primitive.position}>
           <sphereGeometry key={`placing-sphere-${primitive.radius}`} args={[primitive.radius, 32, 32]} />
-          <meshBasicMaterial color={color} transparent opacity={0.4} side={THREE.DoubleSide} />
+          <meshBasicMaterial color={color} transparent opacity={0.4} side={THREE.DoubleSide} depthWrite={false} />
         </mesh>
       )}
 
@@ -442,6 +445,7 @@ function PlacingPrimitiveView({
               transparent
               opacity={0.2}
               side={THREE.DoubleSide}
+              depthWrite={false}
             />
           </mesh>
           <arrowHelper
@@ -463,7 +467,7 @@ function PlacingPrimitiveView({
             key={`placing-cylinder-${primitive.radius}-${primitive.height}`}
             args={[primitive.radius, primitive.radius, primitive.height, 32]}
           />
-          <meshBasicMaterial color={color} transparent opacity={0.4} side={THREE.DoubleSide} />
+          <meshBasicMaterial color={color} transparent opacity={0.4} side={THREE.DoubleSide} depthWrite={false} />
         </mesh>
       )}
     </group>
@@ -569,31 +573,34 @@ function ConstraintView({
         // Use key to force geometry recreation when dimensions change
         const geometryKey = `box-${dims[0]}-${dims[1]}-${dims[2]}`
         return (
-          <mesh
-            ref={meshRef}
+          <group
+            ref={meshRef as any}
             position={position}
             onClick={(e) => {
               e.stopPropagation()
               onSelect()
             }}
           >
-            <boxGeometry
-              key={geometryKey}
-              args={[dims[0] * 2, dims[1] * 2, dims[2] * 2]}
-            />
-            <meshBasicMaterial
-              color={color}
-              transparent
-              opacity={isSelected ? 0.5 : 0.3}
-              side={THREE.DoubleSide}
-            />
+            <mesh>
+              <boxGeometry
+                key={geometryKey}
+                args={[dims[0] * 2, dims[1] * 2, dims[2] * 2]}
+              />
+              <meshBasicMaterial
+                color={color}
+                transparent
+                opacity={isSelected ? 0.5 : 0.3}
+                side={THREE.DoubleSide}
+                depthWrite={false}
+              />
+            </mesh>
             <lineSegments key={`edges-${geometryKey}`}>
               <edgesGeometry
                 args={[new THREE.BoxGeometry(dims[0] * 2, dims[1] * 2, dims[2] * 2)]}
               />
               <lineBasicMaterial color={isSelected ? '#ffffff' : color} />
             </lineSegments>
-          </mesh>
+          </group>
         )
       })()}
 
@@ -614,6 +621,7 @@ function ConstraintView({
               transparent
               opacity={isSelected ? 0.5 : 0.3}
               side={THREE.DoubleSide}
+              depthWrite={false}
             />
           </mesh>
         )
@@ -635,6 +643,7 @@ function ConstraintView({
               transparent
               opacity={isSelected ? 0.3 : 0.15}
               side={THREE.DoubleSide}
+              depthWrite={false}
             />
           </mesh>
           <arrowHelper
@@ -671,6 +680,7 @@ function ConstraintView({
               transparent
               opacity={isSelected ? 0.5 : 0.3}
               side={THREE.DoubleSide}
+              depthWrite={false}
             />
           </mesh>
         )
