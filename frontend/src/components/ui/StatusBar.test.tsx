@@ -162,7 +162,7 @@ describe('StatusBar', () => {
   })
 
   describe('labeled points', () => {
-    it('should count labeled points from painted regions', () => {
+    it('should count labeled points from seed propagation (not brush strokes)', () => {
       useProjectStore.setState({
         currentProjectId: 'project-1',
         pointCloudLoaded: true,
@@ -174,11 +174,22 @@ describe('StatusBar', () => {
           'project-1': [
             {
               id: '1',
-              type: 'brush_stroke',
+              type: 'seed_propagation',
               sign: 'solid',
               weight: 1,
               createdAt: Date.now(),
-              strokePoints: [[0, 0, 0], [1, 0, 0], [2, 0, 0]],
+              seedPoint: [0, 0, 0] as [number, number, number],
+              propagationRadius: 0.5,
+              propagatedIndices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+              confidences: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            },
+            {
+              id: '2',
+              type: 'brush_stroke',
+              sign: 'empty',
+              weight: 1,
+              createdAt: Date.now(),
+              strokePoints: [[0, 0, 0], [1, 0, 0], [2, 0, 0]] as [number, number, number][],
               radius: 0.1,
             },
           ],
@@ -190,6 +201,8 @@ describe('StatusBar', () => {
       render(<StatusBar />)
 
       expect(screen.getByText('Labeled:')).toBeInTheDocument()
+      // Only seed propagation contributes to labeled count (10 points)
+      // Brush strokes define volumetric regions, not point selections
       expect(screen.getByText('10')).toBeInTheDocument()
       expect(screen.getByText('(1.0%)')).toBeInTheDocument()
     })
