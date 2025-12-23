@@ -331,11 +331,13 @@ interface ExportSectionProps {
 
 function ExportSection({ projectId, constraintCount }: ExportSectionProps) {
   const [sampleCount, setSampleCount] = useState<number | null>(null)
+  const [samplesPerPrimitive, setSamplesPerPrimitive] = useState(100)
 
   const generateMutation = useMutation({
     mutationFn: () =>
       generateSamples(projectId, {
         total_samples: 10000,
+        samples_per_primitive: samplesPerPrimitive,
         include_surface: true,
         far_direction: 'bidirectional',
       }),
@@ -372,6 +374,23 @@ function ExportSection({ projectId, constraintCount }: ExportSectionProps) {
 
   return (
     <div className="p-4 border-t border-gray-800 space-y-3">
+      {/* Samples per primitive setting */}
+      <div className="flex items-center justify-between text-sm">
+        <label htmlFor="samples-per-primitive" className="text-gray-400">
+          Samples per primitive
+        </label>
+        <input
+          id="samples-per-primitive"
+          type="number"
+          min={10}
+          max={10000}
+          step={10}
+          value={samplesPerPrimitive}
+          onChange={(e) => setSamplesPerPrimitive(Math.max(10, Math.min(10000, parseInt(e.target.value) || 100)))}
+          className="w-20 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-right text-white focus:border-blue-500 focus:outline-none"
+        />
+      </div>
+
       {/* Generate button */}
       <LoadingButton
         onClick={() => generateMutation.mutate()}

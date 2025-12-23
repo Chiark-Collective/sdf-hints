@@ -86,6 +86,7 @@ export interface TileData {
 
 export interface SampleGenerationRequest {
   total_samples?: number
+  samples_per_primitive?: number
   include_surface?: boolean
   far_direction?: 'outward' | 'inward' | 'bidirectional'
   apply_clipping?: boolean

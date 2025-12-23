@@ -1,10 +1,10 @@
-# SDF Labeler
+# SDF Hints
 
-Interactive web application for generating SDF (Signed Distance Field) training data from point clouds.
+Interactive web application for generating SDF (Signed Distance Field) training hints from point clouds.
 
 ## Overview
 
-SDF Labeler provides an intuitive interface for marking regions of point clouds as "solid" (inside) or "empty" (outside), generating training data for SDF regression models. Designed to work seamlessly with [survi](https://github.com/your-org/survi-v2) for GP-based surface reconstruction.
+SDF Hints provides an intuitive interface for marking regions of point clouds as "solid" (inside) or "empty" (outside), generating training data for SDF regression models. Designed to work seamlessly with [survi](https://github.com/Chiark-Collective/survi-v2) for GP-based surface reconstruction.
 
 ## Features
 
@@ -74,7 +74,7 @@ Select the label type (Solid/Empty/Surface) in the right panel, then mark region
 
 ### 4. Generate & Export
 
-Click "Generate Samples" to create training data, then export to Parquet for use with survi.
+Configure the **samples per primitive** setting to control how many training points are generated from each constraint (default: 100, range: 10-10000). Click "Generate Samples" to create training data, then export to Parquet for use with survi.
 
 ## Keyboard Shortcuts
 
@@ -164,8 +164,12 @@ python -m survi.cli sdf train --point-cloud path/to/exported_samples.parquet
 ## Development
 
 ```bash
-# Run tests
-make test
+# Run backend tests
+make test-backend
+
+# Run frontend E2E tests (requires dev servers running)
+make dev &                    # Start dev servers
+cd frontend && npm run e2e    # Run Playwright tests
 
 # Lint code
 make lint

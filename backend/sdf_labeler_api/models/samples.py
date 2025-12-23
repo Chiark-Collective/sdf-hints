@@ -10,6 +10,12 @@ class SampleGenerationRequest(BaseModel):
     """Request to generate training samples from constraints."""
 
     total_samples: int = Field(default=10000, ge=100, le=1000000)
+    samples_per_primitive: int = Field(
+        default=100,
+        ge=10,
+        le=10000,
+        description="Number of samples to generate per primitive constraint (box, sphere, cylinder, halfspace)",
+    )
     include_surface: bool = Field(default=True, description="Include surface anchor points")
     far_direction: Literal["outward", "inward", "bidirectional"] = Field(
         default="bidirectional", description="Direction for far-field sampling"

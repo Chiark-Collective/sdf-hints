@@ -55,7 +55,9 @@ class SamplingService:
         near_count = int(total * near_ratio)
 
         # Count constraint samples
-        constraint_count = self._count_constraint_samples(constraints)
+        constraint_count = self._count_constraint_samples(
+            constraints, request.samples_per_primitive
+        )
 
         return SamplePreview(
             surface_anchor_count=surface_count,
@@ -160,7 +162,9 @@ class SamplingService:
         normals = data["normals"] if data["normals"].size > 0 else None
         return xyz, normals
 
-    def _count_constraint_samples(self, constraints: ConstraintSet) -> int:
+    def _count_constraint_samples(
+        self, constraints: ConstraintSet, samples_per_primitive: int = 100
+    ) -> int:
         """Estimate sample count from constraints."""
         count = 0
         for c in constraints.constraints:
@@ -168,10 +172,8 @@ class SamplingService:
                 count += len(c.point_indices)
             elif isinstance(c, SeedPropagationConstraint):
                 count += len(c.propagated_indices)
-            elif isinstance(c, (BoxConstraint, SphereConstraint)):
-                count += 100  # Estimate for primitive sampling
-            elif isinstance(c, HalfspaceConstraint):
-                count += 50  # Estimate for halfspace
+            elif isinstance(c, (BoxConstraint, SphereConstraint, HalfspaceConstraint)):
+                count += samples_per_primitive
         return count
 
     def _generate_from_constraints(
@@ -186,18 +188,22 @@ class SamplingService:
         rng = np.random.default_rng(request.seed)
         samples = []
 
+        n_samples = request.samples_per_primitive
+
         for constraint in constraints.constraints:
             if isinstance(constraint, BoxConstraint):
                 samples.extend(
-                    self._sample_box(constraint, rng, project.config.near_band)
+                    self._sample_box(constraint, rng, project.config.near_band, n_samples)
                 )
             elif isinstance(constraint, SphereConstraint):
                 samples.extend(
-                    self._sample_sphere(constraint, rng, project.config.near_band)
+                    self._sample_sphere(constraint, rng, project.config.near_band, n_samples)
                 )
             elif isinstance(constraint, HalfspaceConstraint):
                 samples.extend(
-                    self._sample_halfspace(constraint, xyz, rng, project.config.near_band)
+                    self._sample_halfspace(
+                        constraint, xyz, rng, project.config.near_band, n_samples
+                    )
                 )
             elif isinstance(constraint, PaintedRegionConstraint):
                 samples.extend(
@@ -211,15 +217,16 @@ class SamplingService:
         return samples
 
     def _sample_box(
-        self, constraint: BoxConstraint, rng: np.random.Generator, near_band: float
+        self,
+        constraint: BoxConstraint,
+        rng: np.random.Generator,
+        near_band: float,
+        n_samples: int,
     ) -> list[TrainingSample]:
         """Generate samples from a box constraint."""
         samples = []
         center = np.array(constraint.center)
         half = np.array(constraint.half_extents)
-
-        # Sample points inside/outside the box
-        n_samples = 100
         for _ in range(n_samples):
             # Random point near box surface
             face = rng.integers(0, 6)
@@ -259,14 +266,16 @@ class SamplingService:
         return samples
 
     def _sample_sphere(
-        self, constraint: SphereConstraint, rng: np.random.Generator, near_band: float
+        self,
+        constraint: SphereConstraint,
+        rng: np.random.Generator,
+        near_band: float,
+        n_samples: int,
     ) -> list[TrainingSample]:
         """Generate samples from a sphere constraint."""
         samples = []
         center = np.array(constraint.center)
         radius = constraint.radius
-
-        n_samples = 100
         for _ in range(n_samples):
             # Random direction
             direction = rng.standard_normal(3)
@@ -305,6 +314,7 @@ class SamplingService:
         xyz: np.ndarray,
         rng: np.random.Generator,
         near_band: float,
+        n_samples: int,
     ) -> list[TrainingSample]:
         """Generate samples from a halfspace constraint."""
         samples = []
@@ -315,8 +325,6 @@ class SamplingService:
         # Sample points in the halfspace region
         bounds_low = xyz.min(axis=0)
         bounds_high = xyz.max(axis=0)
-
-        n_samples = 50
         for _ in range(n_samples):
             # Random point in bounds
             sample_point = rng.uniform(bounds_low, bounds_high)
