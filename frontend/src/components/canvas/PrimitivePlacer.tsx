@@ -3,7 +3,7 @@
 
 import { useRef, useCallback, useEffect, useState, useMemo, forwardRef } from 'react'
 import { useThree, useFrame, type ThreeEvent } from '@react-three/fiber'
-import { TransformControls, Edges } from '@react-three/drei'
+import { TransformControls } from '@react-three/drei'
 import * as THREE from 'three'
 
 import { useProjectStore, type LabelType } from '../../stores/projectStore'
@@ -67,23 +67,24 @@ interface BoxMeshProps extends BaseMeshProps {
 }
 
 const BoxMesh = forwardRef<THREE.Mesh, BoxMeshProps>(
-  ({ halfExtents, color, opacity, edgeColor, position, onClick }, ref) => {
+  ({ halfExtents, color, opacity, position, onClick }, ref) => {
     const [w, h, d] = halfExtents
 
     const geometry = useMemo(() => new THREE.BoxGeometry(w * 2, h * 2, d * 2), [w, h, d])
 
     useEffect(() => () => geometry.dispose(), [geometry])
 
+    // Plain mesh without children - TransformControls should work correctly
     return (
       <mesh ref={ref} geometry={geometry} position={position} onClick={onClick}>
-        <meshBasicMaterial
+        <meshStandardMaterial
           color={color}
           transparent
           opacity={opacity}
           side={THREE.DoubleSide}
           depthWrite={false}
+          wireframe={opacity < 0.3}
         />
-        <Edges color={edgeColor || color} />
       </mesh>
     )
   }
@@ -513,8 +514,6 @@ function PlacingPrimitiveView({
     )
 
     onUpdate(updates)
-
-    // Reset scale after applying to dimensions
     meshRef.current.scale.set(1, 1, 1)
   }, [primitive, onUpdate])
 
@@ -574,7 +573,6 @@ function ConstraintView({
       onUpdate(updates)
     }
 
-    // Reset scale after applying to dimensions
     meshRef.current.scale.set(1, 1, 1)
   }, [constraint, isSelected, onUpdate])
 
