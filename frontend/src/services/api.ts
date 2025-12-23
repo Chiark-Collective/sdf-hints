@@ -101,6 +101,21 @@ export interface SamplePreview {
   total_count: number
 }
 
+export interface SamplePoint {
+  x: number
+  y: number
+  z: number
+  phi: number
+}
+
+export interface SampleVisualizationData {
+  samples: SamplePoint[]
+  total_count: number
+  returned_count: number
+  phi_min: number
+  phi_max: number
+}
+
 // API functions
 async function request<T>(
   endpoint: string,
@@ -262,6 +277,13 @@ export async function generateSamples(
     method: 'POST',
     body: JSON.stringify(req),
   })
+}
+
+export async function getSamples(
+  projectId: string,
+  limit: number = 10000
+): Promise<SampleVisualizationData> {
+  return request(`/projects/${projectId}/samples?limit=${limit}`)
 }
 
 export async function exportParquet(projectId: string): Promise<Blob> {

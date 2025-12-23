@@ -444,3 +444,58 @@ class SamplingService:
         df = pd.DataFrame([s.model_dump() for s in samples])
         path = data_dir / "projects" / project_id / "samples.parquet"
         df.to_parquet(path)
+
+    def get_samples_for_visualization(
+        self, project_id: str, limit: int = 10000, subsample: bool = True
+    ) -> "SampleVisualizationResponse":
+        """
+        Get samples for 3D visualization.
+
+        Args:
+            project_id: Project ID
+            limit: Maximum samples to return
+            subsample: Whether to randomly subsample if count > limit
+
+        Returns:
+            SampleVisualizationResponse with minimal sample data for rendering
+        """
+        from sdf_labeler_api.config import settings
+        from sdf_labeler_api.models.samples import SamplePoint, SampleVisualizationResponse
+
+        samples_path = settings.data_dir / "projects" / project_id / "samples.parquet"
+        if not samples_path.exists():
+            return SampleVisualizationResponse(
+                samples=[],
+                total_count=0,
+                returned_count=0,
+                phi_min=0.0,
+                phi_max=0.0,
+            )
+
+        df = pd.read_parquet(samples_path, columns=["x", "y", "z", "phi"])
+        total_count = len(df)
+
+        # Compute phi stats before subsampling
+        phi_min = float(df["phi"].min())
+        phi_max = float(df["phi"].max())
+
+        # Subsample if needed
+        if subsample and total_count > limit:
+            indices = np.random.default_rng(seed=42).choice(
+                total_count, size=limit, replace=False
+            )
+            df = df.iloc[indices]
+
+        # Convert to list of SamplePoint
+        samples = [
+            SamplePoint(x=row["x"], y=row["y"], z=row["z"], phi=row["phi"])
+            for _, row in df.iterrows()
+        ]
+
+        return SampleVisualizationResponse(
+            samples=samples,
+            total_count=total_count,
+            returned_count=len(samples),
+            phi_min=phi_min,
+            phi_max=phi_max,
+        )

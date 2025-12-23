@@ -14,6 +14,7 @@ import { SelectionVolume } from './components/canvas/SelectionVolume'
 import { PrimitivePlacer } from './components/canvas/PrimitivePlacer'
 import { BrushPainter } from './components/canvas/BrushPainter'
 import { SeedPlacer } from './components/canvas/SeedPlacer'
+import { SampleViewer } from './components/canvas/SampleViewer'
 import { useBrushStore } from './stores/brushStore'
 import { useSeedStore } from './stores/seedStore'
 import { Toolbar } from './components/ui/Toolbar'
@@ -72,6 +73,9 @@ function Scene() {
           propagationRadius={propagationRadius}
         />
       )}
+
+      {/* Sample visualization */}
+      {projectId && <SampleViewer projectId={projectId} />}
 
       {/* Camera controls - always enabled, right-click to rotate, middle-click to pan */}
       {/* In Orbit mode, left-click also rotates for convenience */}

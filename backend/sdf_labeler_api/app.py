@@ -23,6 +23,7 @@ from sdf_labeler_api.models.point_cloud import (
 from sdf_labeler_api.models.samples import (
     SampleGenerationRequest,
     SamplePreview,
+    SampleVisualizationResponse,
     TrainingSampleSet,
 )
 from sdf_labeler_api.services.project_service import ProjectService
@@ -260,6 +261,20 @@ async def generate_samples(project_id: str, request: SampleGenerationRequest):
         raise HTTPException(status_code=404, detail="Project not found")
 
     return sampling_service.generate(project_id, request)
+
+
+@app.get("/v1/projects/{project_id}/samples", response_model=SampleVisualizationResponse)
+async def get_samples(
+    project_id: str,
+    limit: int = Query(default=10000, ge=100, le=100000),
+    subsample: bool = Query(default=True),
+):
+    """Get samples for 3D visualization."""
+    project = project_service.get(project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    return sampling_service.get_samples_for_visualization(project_id, limit, subsample)
 
 
 # =============================================================================

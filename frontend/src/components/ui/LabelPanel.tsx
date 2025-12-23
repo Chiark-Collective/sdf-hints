@@ -324,6 +324,23 @@ function formatConstraintType(type: string): string {
   return labels[type] || type
 }
 
+function ShowSamplesToggle() {
+  const showSamples = useProjectStore((s) => s.showSamples)
+  const setShowSamples = useProjectStore((s) => s.setShowSamples)
+
+  return (
+    <label className="flex items-center gap-2 text-sm cursor-pointer">
+      <input
+        type="checkbox"
+        checked={showSamples}
+        onChange={(e) => setShowSamples(e.target.checked)}
+        className="w-4 h-4 rounded border-gray-700 bg-gray-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+      />
+      <span className="text-gray-300">Show samples in viewport</span>
+    </label>
+  )
+}
+
 interface ExportSectionProps {
   projectId: string
   constraintCount: number
@@ -407,6 +424,11 @@ function ExportSection({ projectId, constraintCount }: ExportSectionProps) {
             {sampleCount.toLocaleString()} samples generated
           </p>
         </div>
+      )}
+
+      {/* Show samples toggle */}
+      {sampleCount !== null && (
+        <ShowSamplesToggle />
       )}
 
       {generateMutation.isError && (

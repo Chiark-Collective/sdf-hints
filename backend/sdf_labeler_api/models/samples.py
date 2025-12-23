@@ -85,3 +85,22 @@ class ExportConfig(BaseModel):
     project_name: str
     sample_count: int
     constraint_count: int
+
+
+class SamplePoint(BaseModel):
+    """Minimal sample point for visualization (x, y, z, phi only)."""
+
+    x: float
+    y: float
+    z: float
+    phi: float
+
+
+class SampleVisualizationResponse(BaseModel):
+    """Response for sample visualization endpoint."""
+
+    samples: list[SamplePoint]
+    total_count: int
+    returned_count: int
+    phi_min: float = Field(description="Minimum phi value in dataset")
+    phi_max: float = Field(description="Maximum phi value in dataset")

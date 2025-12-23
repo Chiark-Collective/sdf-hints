@@ -50,6 +50,9 @@ interface ProjectState {
   slicePosition: number
   sliceThickness: number
 
+  // Sample visualization
+  showSamples: boolean
+
   // Actions
   setCurrentProject: (projectId: string | null) => void
   addProject: (project: Project) => void
@@ -71,6 +74,8 @@ interface ProjectState {
   setSlicePlane: (plane: 'xy' | 'xz' | 'yz') => void
   setSlicePosition: (position: number) => void
   setSliceThickness: (thickness: number) => void
+
+  setShowSamples: (show: boolean) => void
 }
 
 export const useProjectStore = create<ProjectState>()(
@@ -93,6 +98,8 @@ export const useProjectStore = create<ProjectState>()(
       slicePlane: 'xy',
       slicePosition: 0,
       sliceThickness: 0.1,
+
+      showSamples: false,
 
       // Actions
       setCurrentProject: (projectId) =>
@@ -145,6 +152,8 @@ export const useProjectStore = create<ProjectState>()(
       setSlicePlane: (plane) => set({ slicePlane: plane }),
       setSlicePosition: (position) => set({ slicePosition: position }),
       setSliceThickness: (thickness) => set({ sliceThickness: thickness }),
+
+      setShowSamples: (show) => set({ showSamples: show }),
     }),
     {
       name: 'sdf-labeler-project-store',
