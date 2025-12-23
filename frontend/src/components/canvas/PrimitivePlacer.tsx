@@ -87,18 +87,27 @@ export function PrimitivePlacer({ projectId }: PrimitivePlacerProps) {
 
   // Handle click to place primitive
   const handleClick = useCallback(
-    (_event: THREE.Event) => {
+    (event: THREE.Event) => {
       if (!isActive) return
 
       // Don't start placing if a constraint is already selected (press Escape to deselect)
       if (selectedConstraintId) return
 
-      // If clicking on empty space, start placing
-      if (ghostPosition && !placingPrimitive) {
-        startPlacing(ghostPosition)
+      // Don't start if already placing
+      if (placingPrimitive) return
+
+      // Calculate click position directly instead of relying on ghostPosition state
+      // This fixes the issue where first click after selecting primitive mode doesn't work
+      raycaster.setFromCamera(pointer, camera)
+      if (raycaster.ray.intersectPlane(groundPlane.current, intersectPoint.current)) {
+        startPlacing([
+          intersectPoint.current.x,
+          intersectPoint.current.y,
+          intersectPoint.current.z,
+        ])
       }
     },
-    [isActive, ghostPosition, placingPrimitive, startPlacing, selectedConstraintId]
+    [isActive, placingPrimitive, startPlacing, selectedConstraintId, raycaster, pointer, camera]
   )
 
   // Handle confirm placement
