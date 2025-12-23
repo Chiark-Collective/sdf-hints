@@ -115,8 +115,24 @@ export default function App() {
             <div className="flex-1 relative canvas-container">
               <Canvas
                 camera={{ position: [5, 5, 5], fov: 50 }}
-                gl={{ antialias: true, alpha: false }}
+                gl={{
+                  antialias: true,
+                  alpha: false,
+                  powerPreference: 'high-performance',
+                  preserveDrawingBuffer: true,
+                }}
                 dpr={[1, 2]}
+                onCreated={({ gl }) => {
+                  // Handle WebGL context loss
+                  const canvas = gl.domElement
+                  canvas.addEventListener('webglcontextlost', (e) => {
+                    e.preventDefault()
+                    console.error('WebGL context lost')
+                  })
+                  canvas.addEventListener('webglcontextrestored', () => {
+                    console.log('WebGL context restored')
+                  })
+                }}
               >
                 <color attach="background" args={['#0f0f0f']} />
                 <Scene />
