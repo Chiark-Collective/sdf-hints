@@ -4,7 +4,7 @@ Interactive web application for generating SDF (Signed Distance Field) training 
 
 ## Overview
 
-SDF Hints provides an intuitive interface for marking regions of point clouds as "solid" (inside) or "empty" (outside), generating training data for SDF regression models. Designed to work seamlessly with [survi](https://github.com/Chiark-Collective/survi-v2) for GP-based surface reconstruction.
+SDF Hints provides an intuitive interface for marking regions of point clouds as "solid" (inside) or "empty" (outside), generating training data for SDF regression models. 
 
 ## Features
 
