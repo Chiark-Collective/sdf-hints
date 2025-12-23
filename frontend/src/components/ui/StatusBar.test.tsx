@@ -174,11 +174,12 @@ describe('StatusBar', () => {
           'project-1': [
             {
               id: '1',
-              type: 'painted_region',
+              type: 'brush_stroke',
               sign: 'solid',
               weight: 1,
               createdAt: Date.now(),
-              pointIndices: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+              strokePoints: [[0, 0, 0], [1, 0, 0], [2, 0, 0]],
+              radius: 0.1,
             },
           ],
         },

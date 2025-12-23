@@ -18,7 +18,7 @@ interface ConstraintCreateRequest {
   axis?: [number, number, number]
   point?: [number, number, number]
   normal?: [number, number, number]
-  point_indices?: number[]
+  stroke_points?: [number, number, number][]
 }
 
 async function createConstraint(
@@ -84,8 +84,9 @@ export function useConstraintSync(projectId: string | null) {
         request.radius = constraint.radius
         request.height = constraint.height
         request.axis = constraint.axis
-      } else if (constraint.type === 'painted_region') {
-        request.point_indices = constraint.pointIndices
+      } else if (constraint.type === 'brush_stroke') {
+        request.stroke_points = constraint.strokePoints
+        request.radius = constraint.radius
       }
 
       return createConstraint(projectId, request)

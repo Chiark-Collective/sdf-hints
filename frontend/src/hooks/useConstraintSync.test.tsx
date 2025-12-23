@@ -312,10 +312,10 @@ describe('useConstraintSync', () => {
       expect(callBody.axis).toEqual([0, 1, 0])
     })
 
-    it('should format painted_region constraint correctly', async () => {
+    it('should format brush_stroke constraint correctly', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({ id: 'region-1' }),
+        json: () => Promise.resolve({ id: 'stroke-1' }),
       })
 
       const { result } = renderHook(() => useConstraintSync('project-123'), {
@@ -323,12 +323,13 @@ describe('useConstraintSync', () => {
       })
 
       result.current.createConstraint({
-        id: 'region-1',
-        type: 'painted_region',
+        id: 'stroke-1',
+        type: 'brush_stroke',
         sign: 'solid',
         weight: 1.0,
         createdAt: Date.now(),
-        pointIndices: [1, 2, 3, 4, 5],
+        strokePoints: [[0, 0, 0], [1, 0, 0], [2, 0, 0]],
+        radius: 0.1,
       })
 
       await waitFor(() => {
@@ -336,8 +337,9 @@ describe('useConstraintSync', () => {
       })
 
       const callBody = JSON.parse(mockFetch.mock.calls[0][1].body)
-      expect(callBody.type).toBe('painted_region')
-      expect(callBody.point_indices).toEqual([1, 2, 3, 4, 5])
+      expect(callBody.type).toBe('brush_stroke')
+      expect(callBody.stroke_points).toEqual([[0, 0, 0], [1, 0, 0], [2, 0, 0]])
+      expect(callBody.radius).toBe(0.1)
     })
   })
 })

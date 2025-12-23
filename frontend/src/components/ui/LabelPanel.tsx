@@ -317,7 +317,7 @@ function formatConstraintType(type: string): string {
     sphere: 'Spheres',
     halfspace: 'Half-spaces',
     cylinder: 'Cylinders',
-    painted_region: 'Painted Regions',
+    brush_stroke: 'Brush Strokes',
     seed_propagation: 'Propagated Seeds',
     ml_import: 'ML Imports',
   }

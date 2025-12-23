@@ -8,7 +8,7 @@ export type ConstraintType =
   | 'sphere'
   | 'halfspace'
   | 'cylinder'
-  | 'painted_region'
+  | 'brush_stroke'
   | 'seed_propagation'
   | 'ml_import'
 
@@ -49,9 +49,10 @@ export interface CylinderConstraint extends BaseConstraint {
   height: number
 }
 
-export interface PaintedRegionConstraint extends BaseConstraint {
-  type: 'painted_region'
-  pointIndices: number[]
+export interface BrushStrokeConstraint extends BaseConstraint {
+  type: 'brush_stroke'
+  strokePoints: [number, number, number][]  // Path of brush center positions
+  radius: number                             // Brush radius
 }
 
 export interface SeedPropagationConstraint extends BaseConstraint {
@@ -75,7 +76,7 @@ export type Constraint =
   | SphereConstraint
   | HalfspaceConstraint
   | CylinderConstraint
-  | PaintedRegionConstraint
+  | BrushStrokeConstraint
   | SeedPropagationConstraint
   | MLImportConstraint
 

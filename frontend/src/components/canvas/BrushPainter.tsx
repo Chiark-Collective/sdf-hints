@@ -1,12 +1,12 @@
-// ABOUTME: 3D brush painter component for direct point cloud painting
-// ABOUTME: Renders spherical brush cursor and handles paint interactions
+// ABOUTME: 3D brush painter for creating volumetric stroke constraints
+// ABOUTME: Paints tube-like regions in 3D space for SDF training
 
 import { useRef, useCallback, useState, useEffect } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
 import { useProjectStore } from '../../stores/projectStore'
-import { useLabelStore, type PaintedRegionConstraint } from '../../stores/labelStore'
+import { useLabelStore, type BrushStrokeConstraint } from '../../stores/labelStore'
 
 const COLORS = {
   solid: '#3b82f6',
@@ -23,100 +23,25 @@ export function BrushPainter({ projectId, depthAware: _depthAware }: BrushPainte
   const mode = useProjectStore((s) => s.mode)
   const activeLabel = useProjectStore((s) => s.activeLabel)
   const brushRadius = useProjectStore((s) => s.brushRadius)
-  const selectPoints = useProjectStore((s) => s.selectPoints)
-  const selectedPointIndices = useProjectStore((s) => s.selectedPointIndices)
-  const clearSelection = useProjectStore((s) => s.clearSelection)
-  const points = useProjectStore((s) => s.pointCloudPositions)
 
   const addConstraint = useLabelStore((s) => s.addConstraint)
+  const constraints = useLabelStore((s) => s.getConstraints(projectId))
 
   const { camera, raycaster, pointer, gl } = useThree()
 
   const [brushPosition, setBrushPosition] = useState<[number, number, number] | null>(null)
   const [isPainting, setIsPainting] = useState(false)
+  const [currentStroke, setCurrentStroke] = useState<[number, number, number][]>([])
   const brushRef = useRef<THREE.Mesh>(null)
 
   const isActive = mode === 'brush'
 
-  // Build spatial index for points (simple grid-based for now)
-  const spatialIndex = useRef<Map<string, number[]>>(new Map())
-  const cellSize = useRef(0.5)
-
-  useEffect(() => {
-    if (!points || points.length === 0) return
-
-    spatialIndex.current.clear()
-    const numPoints = points.length / 3
-
-    // Adjust cell size based on brush radius
-    cellSize.current = Math.max(brushRadius * 2, 0.2)
-
-    for (let i = 0; i < numPoints; i++) {
-      const x = points[i * 3]
-      const y = points[i * 3 + 1]
-      const z = points[i * 3 + 2]
-
-      const cellX = Math.floor(x / cellSize.current)
-      const cellY = Math.floor(y / cellSize.current)
-      const cellZ = Math.floor(z / cellSize.current)
-      const key = `${cellX},${cellY},${cellZ}`
-
-      if (!spatialIndex.current.has(key)) {
-        spatialIndex.current.set(key, [])
-      }
-      spatialIndex.current.get(key)!.push(i)
-    }
-  }, [points, brushRadius])
-
-  // Find points within brush sphere
-  const getPointsInBrush = useCallback(
-    (center: THREE.Vector3): number[] => {
-      if (!points || points.length === 0) return []
-
-      const radiusSquared = brushRadius * brushRadius
-      const indices: number[] = []
-
-      // Get cells that might contain points
-      const minCellX = Math.floor((center.x - brushRadius) / cellSize.current)
-      const maxCellX = Math.floor((center.x + brushRadius) / cellSize.current)
-      const minCellY = Math.floor((center.y - brushRadius) / cellSize.current)
-      const maxCellY = Math.floor((center.y + brushRadius) / cellSize.current)
-      const minCellZ = Math.floor((center.z - brushRadius) / cellSize.current)
-      const maxCellZ = Math.floor((center.z + brushRadius) / cellSize.current)
-
-      for (let cx = minCellX; cx <= maxCellX; cx++) {
-        for (let cy = minCellY; cy <= maxCellY; cy++) {
-          for (let cz = minCellZ; cz <= maxCellZ; cz++) {
-            const key = `${cx},${cy},${cz}`
-            const cellPoints = spatialIndex.current.get(key)
-            if (!cellPoints) continue
-
-            for (const idx of cellPoints) {
-              const px = points[idx * 3]
-              const py = points[idx * 3 + 1]
-              const pz = points[idx * 3 + 2]
-
-              const dx = px - center.x
-              const dy = py - center.y
-              const dz = pz - center.z
-              const distSquared = dx * dx + dy * dy + dz * dz
-
-              if (distSquared <= radiusSquared) {
-                indices.push(idx)
-              }
-            }
-          }
-        }
-      }
-
-      return indices
-    },
-    [points, brushRadius]
-  )
-
   // Ground plane for raycasting (XZ plane at Y=0)
   const groundPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0))
   const intersectPoint = useRef(new THREE.Vector3())
+
+  // Minimum distance between stroke points to avoid overdense paths
+  const MIN_STROKE_POINT_DISTANCE = 0.05
 
   // Update brush position on mouse move
   useFrame(() => {
@@ -127,27 +52,58 @@ export function BrushPainter({ projectId, depthAware: _depthAware }: BrushPainte
 
     raycaster.setFromCamera(pointer, camera)
 
-    // Use ground plane for brush position (points array not needed for cursor)
     if (raycaster.ray.intersectPlane(groundPlane.current, intersectPoint.current)) {
-      setBrushPosition([
+      const newPos: [number, number, number] = [
         intersectPoint.current.x,
         intersectPoint.current.y,
         intersectPoint.current.z,
-      ])
+      ]
+      setBrushPosition(newPos)
+
+      // Add point to stroke if painting and moved enough distance
+      if (isPainting && currentStroke.length > 0) {
+        const last = currentStroke[currentStroke.length - 1]
+        const dx = newPos[0] - last[0]
+        const dy = newPos[1] - last[1]
+        const dz = newPos[2] - last[2]
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz)
+
+        if (dist >= MIN_STROKE_POINT_DISTANCE) {
+          setCurrentStroke((prev) => [...prev, newPos])
+        }
+      }
     }
   })
 
-  // Handle painting
-  const handlePaint = useCallback(() => {
+  // Handle start painting
+  const handleStartPaint = useCallback(() => {
     if (!brushPosition || !isActive) return
+    setIsPainting(true)
+    setCurrentStroke([brushPosition])
+  }, [brushPosition, isActive])
 
-    const center = new THREE.Vector3(...brushPosition)
-    const indices = getPointsInBrush(center)
+  // Handle stop painting - create constraint
+  const handleStopPaint = useCallback(() => {
+    if (!isPainting) return
+    setIsPainting(false)
 
-    if (indices.length > 0) {
-      selectPoints(indices)
+    // Only create constraint if stroke has enough points
+    if (currentStroke.length >= 2) {
+      const constraint: BrushStrokeConstraint = {
+        id: crypto.randomUUID(),
+        type: 'brush_stroke',
+        sign: activeLabel,
+        weight: 1.0,
+        createdAt: Date.now(),
+        strokePoints: currentStroke,
+        radius: brushRadius,
+      }
+
+      addConstraint(projectId, constraint)
     }
-  }, [brushPosition, isActive, getPointsInBrush, selectPoints])
+
+    setCurrentStroke([])
+  }, [isPainting, currentStroke, activeLabel, brushRadius, addConstraint, projectId])
 
   // Mouse event handlers
   useEffect(() => {
@@ -157,81 +113,162 @@ export function BrushPainter({ projectId, depthAware: _depthAware }: BrushPainte
 
     const handleMouseDown = (e: MouseEvent) => {
       if (e.button === 0) {
-        setIsPainting(true)
-        handlePaint()
+        handleStartPaint()
       }
     }
 
     const handleMouseUp = () => {
-      setIsPainting(false)
-    }
-
-    const handleMouseMove = () => {
-      if (isPainting) {
-        handlePaint()
-      }
+      handleStopPaint()
     }
 
     canvas.addEventListener('mousedown', handleMouseDown)
     canvas.addEventListener('mouseup', handleMouseUp)
-    canvas.addEventListener('mousemove', handleMouseMove)
 
     return () => {
       canvas.removeEventListener('mousedown', handleMouseDown)
       canvas.removeEventListener('mouseup', handleMouseUp)
-      canvas.removeEventListener('mousemove', handleMouseMove)
     }
-  }, [isActive, isPainting, handlePaint, gl.domElement])
+  }, [isActive, handleStartPaint, handleStopPaint, gl.domElement])
 
-  // Keyboard handlers for confirming selection as constraint
+  // Keyboard handler for Escape to cancel current stroke
   useEffect(() => {
     if (!isActive) return
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && selectedPointIndices.size > 0) {
-        // Create painted region constraint
-        const constraint: PaintedRegionConstraint = {
-          id: crypto.randomUUID(),
-          type: 'painted_region',
-          sign: activeLabel,
-          weight: 1.0,
-          createdAt: Date.now(),
-          pointIndices: Array.from(selectedPointIndices),
-        }
-
-        addConstraint(projectId, constraint)
-        clearSelection()
-      } else if (e.key === 'Escape') {
-        clearSelection()
+      if (e.key === 'Escape') {
+        setIsPainting(false)
+        setCurrentStroke([])
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isActive, selectedPointIndices, activeLabel, addConstraint, projectId, clearSelection])
+  }, [isActive])
 
-  if (!isActive || !brushPosition) return null
+  // Get brush stroke constraints for this project
+  const brushStrokes = constraints.filter(
+    (c): c is BrushStrokeConstraint => c.type === 'brush_stroke'
+  )
+
+  if (!isActive && brushStrokes.length === 0) return null
 
   const color = COLORS[activeLabel]
 
   return (
     <group>
-      {/* Brush sphere */}
-      <mesh ref={brushRef} position={brushPosition}>
-        <sphereGeometry args={[brushRadius, 32, 32]} />
-        <meshBasicMaterial
-          color={color}
-          transparent
-          opacity={isPainting ? 0.4 : 0.2}
-          wireframe={!isPainting}
-        />
-      </mesh>
+      {/* Brush cursor (only when active) */}
+      {isActive && brushPosition && (
+        <>
+          {/* Brush sphere */}
+          <mesh ref={brushRef} position={brushPosition}>
+            <sphereGeometry args={[brushRadius, 32, 32]} />
+            <meshBasicMaterial
+              color={color}
+              transparent
+              opacity={isPainting ? 0.4 : 0.2}
+              wireframe={!isPainting}
+            />
+          </mesh>
 
-      {/* Brush outline */}
-      <mesh position={brushPosition}>
-        <sphereGeometry args={[brushRadius, 16, 16]} />
-        <meshBasicMaterial color={color} wireframe transparent opacity={0.6} />
-      </mesh>
+          {/* Brush outline */}
+          <mesh position={brushPosition}>
+            <sphereGeometry args={[brushRadius, 16, 16]} />
+            <meshBasicMaterial color={color} wireframe transparent opacity={0.6} />
+          </mesh>
+        </>
+      )}
+
+      {/* Current stroke being painted */}
+      {currentStroke.length > 0 && (
+        <StrokeVisualization
+          points={currentStroke}
+          radius={brushRadius}
+          color={color}
+          opacity={0.5}
+        />
+      )}
+
+      {/* Existing brush stroke constraints */}
+      {brushStrokes.map((stroke) => (
+        <StrokeVisualization
+          key={stroke.id}
+          points={stroke.strokePoints}
+          radius={stroke.radius}
+          color={COLORS[stroke.sign]}
+          opacity={0.3}
+        />
+      ))}
     </group>
+  )
+}
+
+interface StrokeVisualizationProps {
+  points: [number, number, number][]
+  radius: number
+  color: string
+  opacity: number
+}
+
+function StrokeVisualization({ points, radius, color, opacity }: StrokeVisualizationProps) {
+  if (points.length === 0) return null
+
+  return (
+    <group>
+      {/* Render spheres at each stroke point */}
+      {points.map((point, index) => (
+        <mesh key={index} position={point}>
+          <sphereGeometry args={[radius, 16, 16]} />
+          <meshBasicMaterial color={color} transparent opacity={opacity} />
+        </mesh>
+      ))}
+
+      {/* Render connecting cylinders between points for smoother visualization */}
+      {points.slice(0, -1).map((point, index) => {
+        const nextPoint = points[index + 1]
+        return (
+          <StrokeSegment
+            key={`seg-${index}`}
+            start={point}
+            end={nextPoint}
+            radius={radius}
+            color={color}
+            opacity={opacity}
+          />
+        )
+      })}
+    </group>
+  )
+}
+
+interface StrokeSegmentProps {
+  start: [number, number, number]
+  end: [number, number, number]
+  radius: number
+  color: string
+  opacity: number
+}
+
+function StrokeSegment({ start, end, radius, color, opacity }: StrokeSegmentProps) {
+  const startVec = new THREE.Vector3(...start)
+  const endVec = new THREE.Vector3(...end)
+
+  const direction = new THREE.Vector3().subVectors(endVec, startVec)
+  const length = direction.length()
+
+  if (length < 0.001) return null
+
+  // Position at midpoint
+  const midpoint = new THREE.Vector3().addVectors(startVec, endVec).multiplyScalar(0.5)
+
+  // Calculate rotation to align cylinder with direction
+  const up = new THREE.Vector3(0, 1, 0)
+  const quaternion = new THREE.Quaternion()
+  quaternion.setFromUnitVectors(up, direction.normalize())
+
+  return (
+    <mesh position={midpoint} quaternion={quaternion}>
+      <cylinderGeometry args={[radius, radius, length, 8]} />
+      <meshBasicMaterial color={color} transparent opacity={opacity} />
+    </mesh>
   )
 }
