@@ -267,10 +267,10 @@ export function PrimitivePlacer({ projectId }: PrimitivePlacerProps) {
         <meshBasicMaterial transparent opacity={0} side={THREE.DoubleSide} />
       </mesh>
 
-      {/* Transform mode indicator */}
-      <Html position={[0, 0, 0]} style={{ pointerEvents: 'none' }} center>
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 pointer-events-none">
-          <div className="flex gap-2 bg-gray-900/90 rounded-lg px-3 py-2 text-xs">
+      {/* Transform mode indicator - fixed to bottom-left to avoid gizmo interference */}
+      <Html style={{ pointerEvents: 'none' }} calculatePosition={() => [10, window.innerHeight - 80]}>
+        <div className="pointer-events-none">
+          <div className="flex flex-col gap-1 bg-gray-900/90 rounded-lg px-3 py-2 text-xs">
             <span className={transformMode === 'translate' ? 'text-blue-400 font-bold' : 'text-gray-400'}>
               [W] Move
             </span>
@@ -476,11 +476,11 @@ function PlacingPrimitiveView({
         </mesh>
       )}
 
-      {/* Confirm button in 3D space */}
-      <Html position={[primitive.position[0], primitive.position[1] + 2, primitive.position[2]]}>
+      {/* Confirm button - fixed to top-center to avoid gizmo interference */}
+      <Html calculatePosition={() => [window.innerWidth / 2 - 60, 60]}>
         <button
           onClick={onConfirm}
-          className="px-3 py-1 bg-blue-600 text-white text-sm rounded shadow-lg hover:bg-blue-700"
+          className="px-4 py-2 bg-blue-600 text-white text-sm rounded shadow-lg hover:bg-blue-700"
         >
           Confirm (Enter)
         </button>
