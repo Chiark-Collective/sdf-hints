@@ -1,7 +1,7 @@
 // ABOUTME: 3D component for placing and editing primitives
 // ABOUTME: Uses TransformControls for interactive manipulation
 
-import { useRef, useCallback, useEffect, useState } from 'react'
+import { useRef, useCallback, useEffect, useState, useMemo } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import { TransformControls } from '@react-three/drei'
 import * as THREE from 'three'
@@ -24,6 +24,57 @@ const COLORS = {
   empty: '#f97316',
   surface: '#22c55e',
   ghost: '#ffffff',
+}
+
+// BoxMesh component with properly managed geometry lifecycle
+interface BoxMeshProps {
+  halfExtents: [number, number, number]
+  color: string
+  opacity: number
+  showEdges?: boolean
+  edgeColor?: string
+}
+
+function BoxMesh({ halfExtents, color, opacity, showEdges = true, edgeColor }: BoxMeshProps) {
+  const [w, h, d] = halfExtents
+
+  // Create geometries with useMemo and proper cleanup
+  const boxGeometry = useMemo(() => {
+    const geom = new THREE.BoxGeometry(w * 2, h * 2, d * 2)
+    return geom
+  }, [w, h, d])
+
+  const edgesGeometry = useMemo(() => {
+    const geom = new THREE.EdgesGeometry(boxGeometry)
+    return geom
+  }, [boxGeometry])
+
+  // Cleanup geometries on unmount
+  useEffect(() => {
+    return () => {
+      boxGeometry.dispose()
+      edgesGeometry.dispose()
+    }
+  }, [boxGeometry, edgesGeometry])
+
+  return (
+    <>
+      <mesh geometry={boxGeometry}>
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={opacity}
+          side={THREE.DoubleSide}
+          depthWrite={false}
+        />
+      </mesh>
+      {showEdges && (
+        <lineSegments geometry={edgesGeometry}>
+          <lineBasicMaterial color={edgeColor || color} />
+        </lineSegments>
+      )}
+    </>
+  )
 }
 
 interface PrimitivePlacerProps {
@@ -403,29 +454,11 @@ function PlacingPrimitiveView({
 
       {primitive.type === 'box' && primitive.halfExtents && (
         <group ref={setMeshRef as any} position={primitive.position}>
-          <mesh>
-            <boxGeometry
-              key={`placing-box-${primitive.halfExtents[0]}-${primitive.halfExtents[1]}-${primitive.halfExtents[2]}`}
-              args={[
-                primitive.halfExtents[0] * 2,
-                primitive.halfExtents[1] * 2,
-                primitive.halfExtents[2] * 2,
-              ]}
-            />
-            <meshBasicMaterial color={color} transparent opacity={0.4} side={THREE.DoubleSide} depthWrite={false} />
-          </mesh>
-          <lineSegments>
-            <edgesGeometry
-              args={[
-                new THREE.BoxGeometry(
-                  primitive.halfExtents[0] * 2,
-                  primitive.halfExtents[1] * 2,
-                  primitive.halfExtents[2] * 2
-                ),
-              ]}
-            />
-            <lineBasicMaterial color={color} />
-          </lineSegments>
+          <BoxMesh
+            halfExtents={primitive.halfExtents}
+            color={color}
+            opacity={0.4}
+          />
         </group>
       )}
 
@@ -569,9 +602,6 @@ function ConstraintView({
 
       {constraint.type === 'box' && (() => {
         const boxConstraint = constraint as BoxConstraint
-        const dims = boxConstraint.halfExtents
-        // Use key to force geometry recreation when dimensions change
-        const geometryKey = `box-${dims[0]}-${dims[1]}-${dims[2]}`
         return (
           <group
             ref={meshRef as any}
@@ -581,25 +611,12 @@ function ConstraintView({
               onSelect()
             }}
           >
-            <mesh>
-              <boxGeometry
-                key={geometryKey}
-                args={[dims[0] * 2, dims[1] * 2, dims[2] * 2]}
-              />
-              <meshBasicMaterial
-                color={color}
-                transparent
-                opacity={isSelected ? 0.5 : 0.3}
-                side={THREE.DoubleSide}
-                depthWrite={false}
-              />
-            </mesh>
-            <lineSegments key={`edges-${geometryKey}`}>
-              <edgesGeometry
-                args={[new THREE.BoxGeometry(dims[0] * 2, dims[1] * 2, dims[2] * 2)]}
-              />
-              <lineBasicMaterial color={isSelected ? '#ffffff' : color} />
-            </lineSegments>
+            <BoxMesh
+              halfExtents={boxConstraint.halfExtents}
+              color={color}
+              opacity={isSelected ? 0.5 : 0.3}
+              edgeColor={isSelected ? '#ffffff' : color}
+            />
           </group>
         )
       })()}
