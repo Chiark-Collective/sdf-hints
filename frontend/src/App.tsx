@@ -3,6 +3,7 @@
 
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Stats, GizmoHelper, GizmoViewport } from '@react-three/drei'
+import * as THREE from 'three'
 import { Leva } from 'leva'
 import { Suspense } from 'react'
 
@@ -30,8 +31,8 @@ function Scene() {
   const addSeed = useSeedStore((s) => s.addSeed)
   const propagationRadius = useSeedStore((s) => s.propagationRadius)
 
-  // Disable orbit controls when using interactive modes
-  const orbitEnabled = mode === 'orbit'
+  // Navigation always available via right-click (rotate) and middle-click (pan)
+  // Left-click is reserved for tool interactions
 
   return (
     <>
@@ -71,8 +72,15 @@ function Scene() {
         />
       )}
 
-      {/* Camera controls - disabled when using interactive modes */}
-      <OrbitControls makeDefault enabled={orbitEnabled} />
+      {/* Camera controls - always enabled, right-click to rotate, middle-click to pan */}
+      <OrbitControls
+        makeDefault
+        mouseButtons={{
+          LEFT: undefined as unknown as THREE.MOUSE,  // Left click for tools, not orbit
+          MIDDLE: THREE.MOUSE.PAN,
+          RIGHT: THREE.MOUSE.ROTATE,
+        }}
+      />
 
       {/* Gizmo helper */}
       <GizmoHelper alignment="bottom-right" margin={[80, 80]}>
