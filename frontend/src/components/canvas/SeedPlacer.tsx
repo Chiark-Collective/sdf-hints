@@ -1,7 +1,7 @@
 // ABOUTME: 3D component for placing and visualizing seed points
 // ABOUTME: Shows seed markers and propagation preview
 
-import { useRef, useCallback, useEffect, useState } from 'react'
+import { useRef, useCallback, useState } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import * as THREE from 'three'
@@ -32,7 +32,7 @@ export function SeedPlacer({
   const mode = useProjectStore((s) => s.mode)
   const activeLabel = useProjectStore((s) => s.activeLabel)
 
-  const { camera, raycaster, pointer, gl } = useThree()
+  const { camera, raycaster, pointer } = useThree()
 
   const [ghostPosition, setGhostPosition] = useState<[number, number, number] | null>(null)
 
@@ -60,27 +60,11 @@ export function SeedPlacer({
     }
   })
 
-  // Handle click to place seed
+  // Handle click to place seed (called by invisible click plane)
   const handleClick = useCallback(() => {
     if (!isActive || !ghostPosition) return
     onAddSeed(ghostPosition)
   }, [isActive, ghostPosition, onAddSeed])
-
-  // Mouse event handlers
-  useEffect(() => {
-    if (!isActive) return
-
-    const canvas = gl.domElement
-
-    const handleMouseDown = (e: MouseEvent) => {
-      if (e.button === 0) {
-        handleClick()
-      }
-    }
-
-    canvas.addEventListener('mousedown', handleMouseDown)
-    return () => canvas.removeEventListener('mousedown', handleMouseDown)
-  }, [isActive, handleClick, gl.domElement])
 
   if (!isActive) return null
 

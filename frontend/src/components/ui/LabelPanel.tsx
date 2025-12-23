@@ -131,7 +131,7 @@ export function LabelPanel() {
   // Collapsed state - minimal view with just label buttons
   if (collapsed) {
     return (
-      <div className="w-14 flex-shrink-0 flex flex-col bg-gray-900 border-l border-gray-800">
+      <div className="w-14 h-full flex-shrink-0 flex flex-col bg-gray-900 border-l border-gray-800 overflow-hidden">
         {/* Expand button */}
         <button
           onClick={() => setCollapsed(false)}
@@ -170,7 +170,7 @@ export function LabelPanel() {
   }
 
   return (
-    <div className="w-72 flex-shrink-0 flex flex-col bg-gray-900 border-l border-gray-800">
+    <div className="w-72 h-full flex-shrink-0 flex flex-col bg-gray-900 border-l border-gray-800 overflow-hidden">
       {/* Label selection */}
       <div className="p-4 border-b border-gray-800">
         <div className="flex items-center justify-between mb-3">

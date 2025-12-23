@@ -655,6 +655,10 @@ export function PrimitivePlacer({ projectId }: PrimitivePlacerProps) {
   const groundPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0))
   const intersectPoint = useRef(new THREE.Vector3())
 
+  // Cooldown after confirming a primitive to prevent accidental double-placement
+  const lastConfirmTime = useRef<number>(0)
+  const PLACEMENT_COOLDOWN_MS = 500
+
   const isActive = mode === 'primitive'
 
   // Update ghost position on mouse move
@@ -679,9 +683,16 @@ export function PrimitivePlacer({ projectId }: PrimitivePlacerProps) {
     (_event: THREE.Event) => {
       if (!isActive || placingPrimitive) return
 
+      // Prevent accidental double-placement with cooldown
+      const now = Date.now()
+      if (now - lastConfirmTime.current < PLACEMENT_COOLDOWN_MS) {
+        return
+      }
+
       // Deselect any selected constraint first
       if (selectedConstraintId) {
         selectConstraint(null)
+        return // Just deselect, don't start placing
       }
 
       raycaster.setFromCamera(pointer, camera)
@@ -751,6 +762,9 @@ export function PrimitivePlacer({ projectId }: PrimitivePlacerProps) {
 
     addConstraint(projectId, constraint)
     syncConstraint(constraint)
+
+    // Set cooldown to prevent accidental immediate re-placement
+    lastConfirmTime.current = Date.now()
   }, [confirmPlacing, activeLabel, addConstraint, projectId, syncConstraint])
 
   // Keyboard handlers
