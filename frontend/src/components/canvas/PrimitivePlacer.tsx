@@ -1,9 +1,9 @@
 // ABOUTME: 3D component for placing and editing primitives
 // ABOUTME: Uses TransformControls for interactive manipulation
 
-import { useRef, useCallback, useEffect, useState, useMemo } from 'react'
-import { useThree, useFrame } from '@react-three/fiber'
-import { TransformControls } from '@react-three/drei'
+import { useRef, useCallback, useEffect, useState, useMemo, forwardRef } from 'react'
+import { useThree, useFrame, type ThreeEvent } from '@react-three/fiber'
+import { TransformControls, Edges } from '@react-three/drei'
 import * as THREE from 'three'
 
 import { useProjectStore, type LabelType } from '../../stores/projectStore'
@@ -26,40 +26,40 @@ const COLORS = {
   ghost: '#ffffff',
 }
 
-// BoxMesh component with properly managed geometry lifecycle
+// BoxMesh component using forwardRef so TransformControls can attach directly
+// Uses drei's Edges component for edge lines (inherits mesh transforms automatically)
 interface BoxMeshProps {
   halfExtents: [number, number, number]
   color: string
   opacity: number
-  showEdges?: boolean
   edgeColor?: string
+  position?: [number, number, number]
+  onClick?: (e: ThreeEvent<MouseEvent>) => void
 }
 
-function BoxMesh({ halfExtents, color, opacity, showEdges = true, edgeColor }: BoxMeshProps) {
-  const [w, h, d] = halfExtents
+const BoxMesh = forwardRef<THREE.Mesh, BoxMeshProps>(
+  ({ halfExtents, color, opacity, edgeColor, position, onClick }, ref) => {
+    const [w, h, d] = halfExtents
 
-  // Create geometries with useMemo and proper cleanup
-  const boxGeometry = useMemo(() => {
-    const geom = new THREE.BoxGeometry(w * 2, h * 2, d * 2)
-    return geom
-  }, [w, h, d])
+    // Create geometry with useMemo - key ensures new geometry when dimensions change
+    const boxGeometry = useMemo(() => {
+      return new THREE.BoxGeometry(w * 2, h * 2, d * 2)
+    }, [w, h, d])
 
-  const edgesGeometry = useMemo(() => {
-    const geom = new THREE.EdgesGeometry(boxGeometry)
-    return geom
-  }, [boxGeometry])
+    // Cleanup geometry on unmount or when it changes
+    useEffect(() => {
+      return () => {
+        boxGeometry.dispose()
+      }
+    }, [boxGeometry])
 
-  // Cleanup geometries on unmount
-  useEffect(() => {
-    return () => {
-      boxGeometry.dispose()
-      edgesGeometry.dispose()
-    }
-  }, [boxGeometry, edgesGeometry])
-
-  return (
-    <>
-      <mesh geometry={boxGeometry}>
+    return (
+      <mesh
+        ref={ref}
+        geometry={boxGeometry}
+        position={position}
+        onClick={onClick}
+      >
         <meshBasicMaterial
           color={color}
           transparent
@@ -67,15 +67,13 @@ function BoxMesh({ halfExtents, color, opacity, showEdges = true, edgeColor }: B
           side={THREE.DoubleSide}
           depthWrite={false}
         />
+        <Edges color={edgeColor || color} />
       </mesh>
-      {showEdges && (
-        <lineSegments geometry={edgesGeometry}>
-          <lineBasicMaterial color={edgeColor || color} />
-        </lineSegments>
-      )}
-    </>
-  )
-}
+    )
+  }
+)
+
+BoxMesh.displayName = 'BoxMesh'
 
 interface PrimitivePlacerProps {
   projectId: string
@@ -455,13 +453,13 @@ function PlacingPrimitiveView({
       )}
 
       {primitive.type === 'box' && primitive.halfExtents && (
-        <group ref={setMeshRef as any} position={primitive.position}>
-          <BoxMesh
-            halfExtents={primitive.halfExtents}
-            color={color}
-            opacity={0.4}
-          />
-        </group>
+        <BoxMesh
+          ref={setMeshRef}
+          position={primitive.position}
+          halfExtents={primitive.halfExtents}
+          color={color}
+          opacity={0.4}
+        />
       )}
 
       {primitive.type === 'sphere' && primitive.radius && (
@@ -605,21 +603,18 @@ function ConstraintView({
       {constraint.type === 'box' && (() => {
         const boxConstraint = constraint as BoxConstraint
         return (
-          <group
-            ref={meshRef as any}
+          <BoxMesh
+            ref={meshRef}
             position={position}
+            halfExtents={boxConstraint.halfExtents}
+            color={color}
+            opacity={isSelected ? 0.5 : 0.3}
+            edgeColor={isSelected ? '#ffffff' : color}
             onClick={(e) => {
               e.stopPropagation()
               onSelect()
             }}
-          >
-            <BoxMesh
-              halfExtents={boxConstraint.halfExtents}
-              color={color}
-              opacity={isSelected ? 0.5 : 0.3}
-              edgeColor={isSelected ? '#ffffff' : color}
-            />
-          </group>
+          />
         )
       })()}
 
