@@ -16,17 +16,17 @@ const COLORS = {
 
 interface BrushPainterProps {
   projectId: string
-  points: Float32Array | null
   depthAware: boolean
 }
 
-export function BrushPainter({ projectId, points, depthAware: _depthAware }: BrushPainterProps) {
+export function BrushPainter({ projectId, depthAware: _depthAware }: BrushPainterProps) {
   const mode = useProjectStore((s) => s.mode)
   const activeLabel = useProjectStore((s) => s.activeLabel)
   const brushRadius = useProjectStore((s) => s.brushRadius)
   const selectPoints = useProjectStore((s) => s.selectPoints)
   const selectedPointIndices = useProjectStore((s) => s.selectedPointIndices)
   const clearSelection = useProjectStore((s) => s.clearSelection)
+  const points = useProjectStore((s) => s.pointCloudPositions)
 
   const addConstraint = useLabelStore((s) => s.addConstraint)
 

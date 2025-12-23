@@ -26,6 +26,7 @@ export function PointCloudViewer({ projectId }: PointCloudViewerProps) {
   const setVisiblePointCount = useProjectStore((s) => s.setVisiblePointCount)
   const setTotalPointCount = useProjectStore((s) => s.setTotalPointCount)
   const setPointCloudLoaded = useProjectStore((s) => s.setPointCloudLoaded)
+  const setPointCloudPositions = useProjectStore((s) => s.setPointCloudPositions)
 
   // Fetch octree metadata
   const { data: metadata, isLoading, error } = useQuery({
@@ -77,6 +78,30 @@ export function PointCloudViewer({ projectId }: PointCloudViewerProps) {
     }
     setVisiblePointCount(count)
   }, [visibleNodes, loadedTiles, setVisiblePointCount])
+
+  // Consolidate all loaded tile positions for brush/seed tools
+  useEffect(() => {
+    if (loadedTiles.size === 0) {
+      setPointCloudPositions(null)
+      return
+    }
+
+    // Calculate total points
+    let totalPoints = 0
+    for (const tile of loadedTiles.values()) {
+      totalPoints += tile.point_count
+    }
+
+    // Consolidate all positions into a single array
+    const consolidated = new Float32Array(totalPoints * 3)
+    let offset = 0
+    for (const tile of loadedTiles.values()) {
+      consolidated.set(tile.positions, offset)
+      offset += tile.positions.length
+    }
+
+    setPointCloudPositions(consolidated)
+  }, [loadedTiles, setPointCloudPositions])
 
   if (isLoading) {
     return null

@@ -32,6 +32,7 @@ export function SeedMode({
   onClearSeeds,
 }: SeedModeProps) {
   const activeLabel = useProjectStore((s) => s.activeLabel)
+  const pointCloudPositions = useProjectStore((s) => s.pointCloudPositions)
   const addConstraint = useLabelStore((s) => s.addConstraint)
 
   const [propagationRadius, setPropagationRadius] = useState(0.5)
@@ -40,19 +41,44 @@ export function SeedMode({
 
   const labelColor = activeLabel === 'solid' ? 'text-solid' : activeLabel === 'empty' ? 'text-empty' : 'text-surface'
 
-  // Propagation mutation (would call backend)
+  // Propagation mutation - finds all points within radius of each seed
   const propagateMutation = useMutation({
     mutationFn: async () => {
-      // For now, create constraint directly without backend propagation
-      // In a full implementation, this would call the backend to compute propagation
       const propagatedIndices: number[] = []
       const confidences: number[] = []
 
-      // Placeholder: mark seed points as propagated
+      if (!pointCloudPositions || pointCloudPositions.length === 0) {
+        return { propagatedIndices, confidences }
+      }
+
+      const radiusSquared = propagationRadius * propagationRadius
+      const numPoints = pointCloudPositions.length / 3
+      const foundIndices = new Set<number>()
+
+      // For each seed, find all points within the propagation radius
       for (const seed of seeds) {
-        if (seed.pointIndex !== undefined) {
-          propagatedIndices.push(seed.pointIndex)
-          confidences.push(1.0)
+        const [sx, sy, sz] = seed.position
+
+        for (let i = 0; i < numPoints; i++) {
+          if (foundIndices.has(i)) continue
+
+          const px = pointCloudPositions[i * 3]
+          const py = pointCloudPositions[i * 3 + 1]
+          const pz = pointCloudPositions[i * 3 + 2]
+
+          const dx = px - sx
+          const dy = py - sy
+          const dz = pz - sz
+          const distSquared = dx * dx + dy * dy + dz * dz
+
+          if (distSquared <= radiusSquared) {
+            foundIndices.add(i)
+            // Confidence based on distance (closer = higher)
+            const dist = Math.sqrt(distSquared)
+            const confidence = 1.0 - (dist / propagationRadius)
+            propagatedIndices.push(i)
+            confidences.push(confidence)
+          }
         }
       }
 

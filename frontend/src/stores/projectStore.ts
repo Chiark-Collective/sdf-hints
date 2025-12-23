@@ -40,6 +40,7 @@ interface ProjectState {
   pointCloudLoaded: boolean
   visiblePointCount: number
   totalPointCount: number
+  pointCloudPositions: Float32Array | null  // Consolidated positions from all loaded tiles
 
   // Selection state
   selectedPointIndices: Set<number>
@@ -65,6 +66,7 @@ interface ProjectState {
   setPointCloudLoaded: (loaded: boolean) => void
   setVisiblePointCount: (count: number) => void
   setTotalPointCount: (count: number) => void
+  setPointCloudPositions: (positions: Float32Array | null) => void
 
   selectPoints: (indices: number[]) => void
   deselectPoints: (indices: number[]) => void
@@ -91,6 +93,7 @@ export const useProjectStore = create<ProjectState>()(
       pointCloudLoaded: false,
       visiblePointCount: 0,
       totalPointCount: 0,
+      pointCloudPositions: null,
 
       selectedPointIndices: new Set(),
       brushRadius: 0.1,
@@ -130,6 +133,7 @@ export const useProjectStore = create<ProjectState>()(
       setPointCloudLoaded: (loaded) => set({ pointCloudLoaded: loaded }),
       setVisiblePointCount: (count) => set({ visiblePointCount: count }),
       setTotalPointCount: (count) => set({ totalPointCount: count }),
+      setPointCloudPositions: (positions) => set({ pointCloudPositions: positions }),
 
       selectPoints: (indices) =>
         set((state) => {

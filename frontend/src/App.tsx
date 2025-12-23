@@ -59,7 +59,6 @@ function Scene() {
       {projectId && (
         <BrushPainter
           projectId={projectId}
-          points={null}
           depthAware={depthAware}
         />
       )}
