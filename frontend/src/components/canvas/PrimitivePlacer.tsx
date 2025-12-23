@@ -67,7 +67,8 @@ export function PrimitivePlacer({ projectId }: PrimitivePlacerProps) {
 
   // Update ghost position on mouse move
   useFrame(() => {
-    if (!isActive || placingPrimitive) {
+    // Don't show ghost when placing, when a constraint is selected, or when not in primitive mode
+    if (!isActive || placingPrimitive || selectedConstraintId) {
       setGhostPosition(null)
       return
     }
@@ -89,12 +90,15 @@ export function PrimitivePlacer({ projectId }: PrimitivePlacerProps) {
     (_event: THREE.Event) => {
       if (!isActive) return
 
+      // Don't start placing if a constraint is already selected (press Escape to deselect)
+      if (selectedConstraintId) return
+
       // If clicking on empty space, start placing
       if (ghostPosition && !placingPrimitive) {
         startPlacing(ghostPosition)
       }
     },
-    [isActive, ghostPosition, placingPrimitive, startPlacing]
+    [isActive, ghostPosition, placingPrimitive, startPlacing, selectedConstraintId]
   )
 
   // Handle confirm placement
