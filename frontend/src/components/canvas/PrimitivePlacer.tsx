@@ -142,11 +142,13 @@ export function PrimitivePlacer({ projectId }: PrimitivePlacerProps) {
     (_event: THREE.Event) => {
       if (!isActive) return
 
-      // Don't start placing if a constraint is already selected (press Escape to deselect)
-      if (selectedConstraintId) return
-
       // Don't start if already placing
       if (placingPrimitive) return
+
+      // If a constraint is selected, deselect it first, then start placing
+      if (selectedConstraintId) {
+        selectConstraint(null)
+      }
 
       // Calculate click position directly instead of relying on ghostPosition state
       // This fixes the issue where first click after selecting primitive mode doesn't work
@@ -159,7 +161,7 @@ export function PrimitivePlacer({ projectId }: PrimitivePlacerProps) {
         ])
       }
     },
-    [isActive, placingPrimitive, startPlacing, selectedConstraintId, raycaster, pointer, camera]
+    [isActive, placingPrimitive, startPlacing, selectedConstraintId, selectConstraint, raycaster, pointer, camera]
   )
 
   // Handle confirm placement
