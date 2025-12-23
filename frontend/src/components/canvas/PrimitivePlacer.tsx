@@ -559,7 +559,6 @@ function ConstraintView({
         <TransformControls
           object={meshRef.current}
           mode={transformMode}
-          onObjectChange={handleTransformChange}
           onMouseUp={handleTransformChange}
         />
       )}
