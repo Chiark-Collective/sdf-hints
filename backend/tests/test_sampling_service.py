@@ -6,8 +6,8 @@ import pytest
 
 from sdf_labeler_api.models.constraints import (
     BoxConstraint,
+    BrushStrokeConstraint,
     HalfspaceConstraint,
-    PaintedRegionConstraint,
     SeedPropagationConstraint,
     SignConvention,
     SphereConstraint,
@@ -143,30 +143,32 @@ class TestSamplingServiceGenerate:
         assert result.sample_count > 0
         assert "halfspace_empty" in result.source_breakdown
 
-    def test_generate_from_painted_region(
+    def test_generate_from_brush_stroke(
         self,
         sampling_service: SamplingService,
         constraint_service: ConstraintService,
         sample_project,
         sample_pointcloud,
     ):
-        """Test generating samples from painted region."""
-        painted = PaintedRegionConstraint(
-            sign=SignConvention.SURFACE,
-            point_indices=[0, 1, 2, 3, 4],
+        """Test generating samples from brush stroke."""
+        stroke = BrushStrokeConstraint(
+            sign=SignConvention.EMPTY,
+            stroke_points=[(0.0, 0.0, 0.0), (0.1, 0.0, 0.0), (0.2, 0.0, 0.0)],
+            radius=0.05,
         )
-        constraint_service.add(sample_project.id, painted)
+        constraint_service.add(sample_project.id, stroke)
 
-        request = SampleGenerationRequest()
+        request = SampleGenerationRequest(samples_per_primitive=10)
         result = sampling_service.generate(sample_project.id, request)
 
-        assert result.sample_count == 5
-        assert "painted_surface" in result.source_breakdown
+        # 3 stroke points * 10 samples each = 30 samples
+        assert result.sample_count == 30
+        assert "brush_empty" in result.source_breakdown
 
-        # Surface points should have phi=0
+        # Empty samples should have positive phi
         for sample in result.samples:
-            assert sample.phi == 0.0
-            assert sample.is_surface is True
+            assert sample.phi > 0
+            assert sample.is_free is True
 
     def test_generate_from_seed_propagation(
         self,
@@ -351,29 +353,6 @@ class TestSamplingServiceExport:
 
 class TestSamplingServiceValidation:
     """Tests for input validation and edge cases."""
-
-    def test_painted_region_skips_invalid_indices(
-        self,
-        sampling_service: SamplingService,
-        constraint_service: ConstraintService,
-        sample_project,
-        sample_pointcloud,
-    ):
-        """Test that invalid point indices are skipped."""
-        xyz, _ = sample_pointcloud
-        n_points = len(xyz)
-
-        painted = PaintedRegionConstraint(
-            sign=SignConvention.SURFACE,
-            point_indices=[0, 1, n_points + 100, n_points + 200],  # 2 valid, 2 invalid
-        )
-        constraint_service.add(sample_project.id, painted)
-
-        request = SampleGenerationRequest()
-        result = sampling_service.generate(sample_project.id, request)
-
-        # Should only include valid indices
-        assert result.sample_count == 2
 
     def test_empty_propagated_indices(
         self,

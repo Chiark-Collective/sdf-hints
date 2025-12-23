@@ -13,10 +13,10 @@ from sdf_labeler_api.app import app
 from sdf_labeler_api.config import settings
 from sdf_labeler_api.models.constraints import (
     BoxConstraint,
+    BrushStrokeConstraint,
     CylinderConstraint,
     HalfspaceConstraint,
     MLImportConstraint,
-    PaintedRegionConstraint,
     SeedPropagationConstraint,
     SignConvention,
     SphereConstraint,
@@ -145,13 +145,14 @@ def sample_cylinder_constraint() -> CylinderConstraint:
 
 
 @pytest.fixture
-def sample_painted_constraint() -> PaintedRegionConstraint:
-    """Create a sample painted region constraint."""
-    return PaintedRegionConstraint(
-        name="Test Painted",
-        sign=SignConvention.SURFACE,
+def sample_brush_stroke_constraint() -> BrushStrokeConstraint:
+    """Create a sample brush stroke constraint."""
+    return BrushStrokeConstraint(
+        name="Test Brush Stroke",
+        sign=SignConvention.EMPTY,
         weight=1.0,
-        point_indices=[0, 1, 2, 3, 4, 5, 10, 20, 30],
+        stroke_points=[(0.0, 0.0, 0.0), (0.1, 0.0, 0.0), (0.2, 0.0, 0.0)],
+        radius=0.05,
     )
 
 

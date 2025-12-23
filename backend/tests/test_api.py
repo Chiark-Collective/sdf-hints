@@ -232,21 +232,23 @@ class TestConstraintEndpoints:
         assert data["radius"] == 0.15
         assert data["height"] == 0.5
 
-    def test_add_painted_region_constraint(self, client: TestClient, project_id: str):
-        """Test adding a painted region constraint."""
+    def test_add_brush_stroke_constraint(self, client: TestClient, project_id: str):
+        """Test adding a brush stroke constraint."""
         response = client.post(
             f"/v1/projects/{project_id}/constraints",
             json={
-                "type": "painted_region",
-                "sign": "surface",
-                "point_indices": [0, 1, 2, 3, 4],
+                "type": "brush_stroke",
+                "sign": "empty",
+                "stroke_points": [[0.0, 0.0, 0.0], [0.1, 0.0, 0.0], [0.2, 0.0, 0.0]],
+                "radius": 0.05,
             },
         )
 
         assert response.status_code == 200
         data = response.json()
-        assert data["type"] == "painted_region"
-        assert data["point_indices"] == [0, 1, 2, 3, 4]
+        assert data["type"] == "brush_stroke"
+        assert len(data["stroke_points"]) == 3
+        assert data["radius"] == 0.05
 
     def test_list_constraints_empty(self, client: TestClient, project_id: str):
         """Test listing constraints when none exist."""

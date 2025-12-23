@@ -9,9 +9,9 @@ import pandas as pd
 
 from sdf_labeler_api.models.constraints import (
     BoxConstraint,
+    BrushStrokeConstraint,
     ConstraintSet,
     HalfspaceConstraint,
-    PaintedRegionConstraint,
     SeedPropagationConstraint,
     SignConvention,
     SphereConstraint,
@@ -168,8 +168,9 @@ class SamplingService:
         """Estimate sample count from constraints."""
         count = 0
         for c in constraints.constraints:
-            if isinstance(c, PaintedRegionConstraint):
-                count += len(c.point_indices)
+            if isinstance(c, BrushStrokeConstraint):
+                # Each stroke point generates samples_per_primitive samples
+                count += len(c.stroke_points) * samples_per_primitive
             elif isinstance(c, SeedPropagationConstraint):
                 count += len(c.propagated_indices)
             elif isinstance(c, (BoxConstraint, SphereConstraint, HalfspaceConstraint)):
@@ -205,9 +206,11 @@ class SamplingService:
                         constraint, xyz, rng, project.config.near_band, n_samples
                     )
                 )
-            elif isinstance(constraint, PaintedRegionConstraint):
+            elif isinstance(constraint, BrushStrokeConstraint):
                 samples.extend(
-                    self._sample_painted(constraint, xyz, normals)
+                    self._sample_brush_stroke(
+                        constraint, rng, project.config.near_band, n_samples
+                    )
                 )
             elif isinstance(constraint, SeedPropagationConstraint):
                 samples.extend(
@@ -356,42 +359,53 @@ class SamplingService:
 
         return samples
 
-    def _sample_painted(
+    def _sample_brush_stroke(
         self,
-        constraint: PaintedRegionConstraint,
-        xyz: np.ndarray,
-        normals: np.ndarray | None,
+        constraint: BrushStrokeConstraint,
+        rng: np.random.Generator,
+        near_band: float,
+        n_samples_per_point: int,
     ) -> list[TrainingSample]:
-        """Generate samples from painted region."""
+        """Generate samples from brush stroke volume.
+
+        Samples uniformly within the tube-like stroke region.
+        """
         samples = []
+        stroke_points = np.array(constraint.stroke_points)
+        radius = constraint.radius
 
-        for idx in constraint.point_indices:
-            if idx >= len(xyz):
-                continue
+        # Determine phi based on sign
+        if constraint.sign == SignConvention.SURFACE:
+            phi = 0.0
+        elif constraint.sign == SignConvention.SOLID:
+            phi = -near_band
+        else:  # EMPTY
+            phi = near_band
 
-            point = xyz[idx]
-            normal = normals[idx] if normals is not None else [0, 0, 1]
+        # Sample around each stroke point
+        for center in stroke_points:
+            for _ in range(n_samples_per_point):
+                # Random point within sphere of radius
+                direction = rng.standard_normal(3)
+                direction /= np.linalg.norm(direction)
+                distance = rng.uniform(0, radius)
+                point = center + distance * direction
 
-            # Surface points have phi=0
-            phi = 0.0 if constraint.sign == SignConvention.SURFACE else (
-                -0.01 if constraint.sign == SignConvention.SOLID else 0.01
-            )
-
-            samples.append(
-                TrainingSample(
-                    x=float(point[0]),
-                    y=float(point[1]),
-                    z=float(point[2]),
-                    phi=phi,
-                    nx=float(normal[0]),
-                    ny=float(normal[1]),
-                    nz=float(normal[2]),
-                    weight=constraint.weight,
-                    source=f"painted_{constraint.sign.value}",
-                    is_surface=constraint.sign == SignConvention.SURFACE,
-                    is_free=constraint.sign == SignConvention.EMPTY,
+                samples.append(
+                    TrainingSample(
+                        x=float(point[0]),
+                        y=float(point[1]),
+                        z=float(point[2]),
+                        phi=phi,
+                        nx=0.0,  # No normal for volumetric samples
+                        ny=0.0,
+                        nz=0.0,
+                        weight=constraint.weight,
+                        source=f"brush_{constraint.sign.value}",
+                        is_surface=constraint.sign == SignConvention.SURFACE,
+                        is_free=constraint.sign == SignConvention.EMPTY,
+                    )
                 )
-            )
 
         return samples
 

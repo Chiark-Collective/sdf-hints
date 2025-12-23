@@ -73,11 +73,14 @@ class CylinderConstraint(BaseConstraint):
     height: float = Field(..., gt=0, description="Cylinder height")
 
 
-class PaintedRegionConstraint(BaseConstraint):
-    """User-painted region on the point cloud."""
+class BrushStrokeConstraint(BaseConstraint):
+    """User-painted volumetric stroke in 3D space."""
 
-    type: Literal["painted_region"] = "painted_region"
-    point_indices: list[int] = Field(..., description="Indices of painted points")
+    type: Literal["brush_stroke"] = "brush_stroke"
+    stroke_points: list[tuple[float, float, float]] = Field(
+        ..., description="Path of brush center positions"
+    )
+    radius: float = Field(..., gt=0, description="Brush/stroke radius")
 
 
 class SeedPropagationConstraint(BaseConstraint):
@@ -118,7 +121,7 @@ Constraint = Annotated[
         SphereConstraint,
         HalfspaceConstraint,
         CylinderConstraint,
-        PaintedRegionConstraint,
+        BrushStrokeConstraint,
         SeedPropagationConstraint,
         MLImportConstraint,
     ],

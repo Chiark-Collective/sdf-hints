@@ -49,7 +49,7 @@ class TestConstraintServiceCRUD:
         sample_sphere_constraint,
         sample_halfspace_constraint,
         sample_cylinder_constraint,
-        sample_painted_constraint,
+        sample_brush_stroke_constraint,
         sample_seed_constraint,
         sample_ml_import_constraint,
     ):
@@ -59,7 +59,7 @@ class TestConstraintServiceCRUD:
             sample_sphere_constraint,
             sample_halfspace_constraint,
             sample_cylinder_constraint,
-            sample_painted_constraint,
+            sample_brush_stroke_constraint,
             sample_seed_constraint,
             sample_ml_import_constraint,
         ]
@@ -76,7 +76,7 @@ class TestConstraintServiceCRUD:
             "sphere",
             "halfspace",
             "cylinder",
-            "painted_region",
+            "brush_stroke",
             "seed_propagation",
             "ml_import",
         }
@@ -237,19 +237,20 @@ class TestConstraintServicePersistence:
 class TestConstraintTypes:
     """Tests for specific constraint types."""
 
-    def test_painted_region_stores_indices(
+    def test_brush_stroke_stores_data(
         self,
         constraint_service: ConstraintService,
         sample_project,
-        sample_painted_constraint,
+        sample_brush_stroke_constraint,
     ):
-        """Test that painted region stores point indices correctly."""
-        constraint_service.add(sample_project.id, sample_painted_constraint)
+        """Test that brush stroke stores stroke data correctly."""
+        constraint_service.add(sample_project.id, sample_brush_stroke_constraint)
 
-        result = constraint_service.get(sample_project.id, sample_painted_constraint.id)
+        result = constraint_service.get(sample_project.id, sample_brush_stroke_constraint.id)
 
-        assert result.type == "painted_region"
-        assert result.point_indices == [0, 1, 2, 3, 4, 5, 10, 20, 30]
+        assert result.type == "brush_stroke"
+        assert len(result.stroke_points) == 3
+        assert result.radius == 0.05
 
     def test_seed_propagation_stores_results(
         self,
