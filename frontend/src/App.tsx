@@ -73,10 +73,11 @@ function Scene() {
       )}
 
       {/* Camera controls - always enabled, right-click to rotate, middle-click to pan */}
+      {/* In Orbit mode, left-click also rotates for convenience */}
       <OrbitControls
         makeDefault
         mouseButtons={{
-          LEFT: undefined as unknown as THREE.MOUSE,  // Left click for tools, not orbit
+          LEFT: mode === 'orbit' ? THREE.MOUSE.ROTATE : (undefined as unknown as THREE.MOUSE),
           MIDDLE: THREE.MOUSE.PAN,
           RIGHT: THREE.MOUSE.ROTATE,
         }}
