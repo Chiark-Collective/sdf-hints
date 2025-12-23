@@ -34,8 +34,8 @@ const OPACITY = {
   placing: 0.4,
   existing: 0.3,
   selected: 0.5,
-  halfspaceExisting: 0.15,
-  halfspaceSelected: 0.3,
+  halfspaceExisting: 0.35,
+  halfspaceSelected: 0.5,
 } as const
 
 const GEOMETRY = {
