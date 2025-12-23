@@ -401,6 +401,75 @@ test.describe('Primitive Type Switching', () => {
   })
 })
 
+test.describe('First Click After Mode Selection', () => {
+  test('should place primitive on first click after selecting primitive mode', async ({ app, page }) => {
+    await app.goto()
+    await app.createProject(`First Click Test ${Date.now()}`)
+    await app.dismissToast()
+
+    // Start in default mode (Orbit), then switch to Primitive
+    await expect(app.getModeButton('Orbit')).toHaveClass(/bg-blue-600/)
+
+    // Switch to Primitive mode
+    await app.selectMode('Primitive')
+    await expect(app.getModeButton('Primitive')).toHaveClass(/bg-blue-600/)
+
+    // Immediately click on canvas (no mouse movement first)
+    const canvas = app.canvas
+    const box = await canvas.boundingBox()
+    if (box) {
+      await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } })
+    }
+
+    // Should see confirm button - primitive placement started
+    await expect(page.getByText('Confirm (Enter)')).toBeVisible({ timeout: 5000 })
+
+    await page.screenshot({ path: 'test-results/first-click-works.png' })
+  })
+
+  test('should place primitive after switching modes multiple times', async ({ app, page }) => {
+    await app.goto()
+    await app.createProject(`Mode Switch Test ${Date.now()}`)
+    await app.dismissToast()
+
+    const canvas = app.canvas
+    const box = await canvas.boundingBox()
+
+    // Switch to Primitive -> Orbit -> Primitive
+    await app.selectMode('Primitive')
+    await app.selectMode('Orbit')
+    await app.selectMode('Primitive')
+
+    // Click should work immediately
+    if (box) {
+      await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } })
+    }
+
+    await expect(page.getByText('Confirm (Enter)')).toBeVisible({ timeout: 5000 })
+  })
+
+  test('should place primitive without moving mouse first', async ({ app, page }) => {
+    await app.goto()
+    await app.createProject(`No Mouse Move Test ${Date.now()}`)
+    await app.dismissToast()
+
+    // Use keyboard to switch to Primitive mode (P key)
+    await page.keyboard.press('p')
+    await expect(app.getModeButton('Primitive')).toHaveClass(/bg-blue-600/)
+
+    // Click directly without any mouse movement
+    const canvas = app.canvas
+    const box = await canvas.boundingBox()
+    if (box) {
+      // Click at a specific position without moving mouse there first
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+    }
+
+    // Should work
+    await expect(page.getByText('Confirm (Enter)')).toBeVisible({ timeout: 5000 })
+  })
+})
+
 test.describe('Transform Mode Indicators', () => {
   test.beforeEach(async ({ app, page }) => {
     await app.goto()
