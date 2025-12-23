@@ -186,17 +186,17 @@ export function PrimitivePlacer({ projectId }: PrimitivePlacerProps) {
             selectConstraint(null)
           }
           break
-        // Transform mode shortcuts (T for scale to avoid conflict with S=Slice mode)
-        case 'g':
-        case 'G':
+        // Transform mode shortcuts (W/E/R like Unity, avoids global shortcut conflicts)
+        case 'w':
+        case 'W':
           setTransformMode('translate')
+          break
+        case 'e':
+        case 'E':
+          setTransformMode('rotate')
           break
         case 'r':
         case 'R':
-          setTransformMode('rotate')
-          break
-        case 't':
-        case 'T':
           setTransformMode('scale')
           break
       }
@@ -268,13 +268,13 @@ export function PrimitivePlacer({ projectId }: PrimitivePlacerProps) {
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 pointer-events-none">
           <div className="flex gap-2 bg-gray-900/90 rounded-lg px-3 py-2 text-xs">
             <span className={transformMode === 'translate' ? 'text-blue-400 font-bold' : 'text-gray-400'}>
-              [G] Move
+              [W] Move
             </span>
             <span className={transformMode === 'rotate' ? 'text-blue-400 font-bold' : 'text-gray-400'}>
-              [R] Rotate
+              [E] Rotate
             </span>
             <span className={transformMode === 'scale' ? 'text-blue-400 font-bold' : 'text-gray-400'}>
-              [T] Scale
+              [R] Scale
             </span>
           </div>
         </div>
@@ -573,59 +573,59 @@ function ConstraintView({
         />
       )}
 
-      {constraint.type === 'box' && (
-        <mesh
-          ref={meshRef}
-          position={position}
-          onClick={(e) => {
-            e.stopPropagation()
-            onSelect()
-          }}
-        >
-          <boxGeometry
-            args={[
-              (constraint as BoxConstraint).halfExtents[0] * 2,
-              (constraint as BoxConstraint).halfExtents[1] * 2,
-              (constraint as BoxConstraint).halfExtents[2] * 2,
-            ]}
-          />
-          <meshBasicMaterial
-            color={color}
-            transparent
-            opacity={isSelected ? 0.5 : 0.3}
-          />
-          <lineSegments>
-            <edgesGeometry
-              args={[
-                new THREE.BoxGeometry(
-                  (constraint as BoxConstraint).halfExtents[0] * 2,
-                  (constraint as BoxConstraint).halfExtents[1] * 2,
-                  (constraint as BoxConstraint).halfExtents[2] * 2
-                ),
-              ]}
+      {constraint.type === 'box' && (() => {
+        const boxConstraint = constraint as BoxConstraint
+        const dims = boxConstraint.halfExtents
+        // Use key to force geometry recreation when dimensions change
+        const geometryKey = `box-${dims[0]}-${dims[1]}-${dims[2]}`
+        return (
+          <mesh
+            ref={meshRef}
+            position={position}
+            onClick={(e) => {
+              e.stopPropagation()
+              onSelect()
+            }}
+          >
+            <boxGeometry
+              key={geometryKey}
+              args={[dims[0] * 2, dims[1] * 2, dims[2] * 2]}
             />
-            <lineBasicMaterial color={isSelected ? '#ffffff' : color} />
-          </lineSegments>
-        </mesh>
-      )}
+            <meshBasicMaterial
+              color={color}
+              transparent
+              opacity={isSelected ? 0.5 : 0.3}
+            />
+            <lineSegments key={`edges-${geometryKey}`}>
+              <edgesGeometry
+                args={[new THREE.BoxGeometry(dims[0] * 2, dims[1] * 2, dims[2] * 2)]}
+              />
+              <lineBasicMaterial color={isSelected ? '#ffffff' : color} />
+            </lineSegments>
+          </mesh>
+        )
+      })()}
 
-      {constraint.type === 'sphere' && (
-        <mesh
-          ref={meshRef}
-          position={position}
-          onClick={(e) => {
-            e.stopPropagation()
-            onSelect()
-          }}
-        >
-          <sphereGeometry args={[(constraint as SphereConstraint).radius, 32, 32]} />
-          <meshBasicMaterial
-            color={color}
-            transparent
-            opacity={isSelected ? 0.5 : 0.3}
-          />
-        </mesh>
-      )}
+      {constraint.type === 'sphere' && (() => {
+        const radius = (constraint as SphereConstraint).radius
+        return (
+          <mesh
+            ref={meshRef}
+            position={position}
+            onClick={(e) => {
+              e.stopPropagation()
+              onSelect()
+            }}
+          >
+            <sphereGeometry key={`sphere-${radius}`} args={[radius, 32, 32]} />
+            <meshBasicMaterial
+              color={color}
+              transparent
+              opacity={isSelected ? 0.5 : 0.3}
+            />
+          </mesh>
+        )
+      })()}
 
       {constraint.type === 'halfspace' && (
         <group
@@ -658,30 +658,30 @@ function ConstraintView({
         </group>
       )}
 
-      {constraint.type === 'cylinder' && (
-        <mesh
-          ref={meshRef}
-          position={position}
-          onClick={(e) => {
-            e.stopPropagation()
-            onSelect()
-          }}
-        >
-          <cylinderGeometry
-            args={[
-              (constraint as CylinderConstraint).radius,
-              (constraint as CylinderConstraint).radius,
-              (constraint as CylinderConstraint).height,
-              32,
-            ]}
-          />
-          <meshBasicMaterial
-            color={color}
-            transparent
-            opacity={isSelected ? 0.5 : 0.3}
-          />
-        </mesh>
-      )}
+      {constraint.type === 'cylinder' && (() => {
+        const cylConstraint = constraint as CylinderConstraint
+        const { radius, height } = cylConstraint
+        return (
+          <mesh
+            ref={meshRef}
+            position={position}
+            onClick={(e) => {
+              e.stopPropagation()
+              onSelect()
+            }}
+          >
+            <cylinderGeometry
+              key={`cylinder-${radius}-${height}`}
+              args={[radius, radius, height, 32]}
+            />
+            <meshBasicMaterial
+              color={color}
+              transparent
+              opacity={isSelected ? 0.5 : 0.3}
+            />
+          </mesh>
+        )
+      })()}
     </group>
   )
 }
