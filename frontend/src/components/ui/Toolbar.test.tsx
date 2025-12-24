@@ -94,10 +94,10 @@ describe('Toolbar', () => {
   })
 
   describe('secondary modes dropdown', () => {
-    it('should render advanced tools dropdown', () => {
+    it('should render secondary tools dropdown', () => {
       render(<Toolbar />)
 
-      const dropdown = screen.getByTestId('advanced-tools-dropdown')
+      const dropdown = screen.getByTestId('secondary-tools-dropdown')
       expect(dropdown).toBeInTheDocument()
     })
 
@@ -105,7 +105,7 @@ describe('Toolbar', () => {
       useProjectStore.setState({ mode: 'primitive' })
       render(<Toolbar />)
 
-      const dropdown = screen.getByTestId('advanced-tools-dropdown')
+      const dropdown = screen.getByTestId('secondary-tools-dropdown')
       expect(dropdown.className).toContain('bg-blue-600')
     })
 
@@ -114,7 +114,7 @@ describe('Toolbar', () => {
       render(<Toolbar />)
 
       // Open dropdown using userEvent for proper Radix handling
-      const dropdownTrigger = screen.getByTestId('advanced-tools-dropdown')
+      const dropdownTrigger = screen.getByTestId('secondary-tools-dropdown')
       await user.click(dropdownTrigger)
 
       // Wait for dropdown content and click primitive option
@@ -128,7 +128,7 @@ describe('Toolbar', () => {
       const user = userEvent.setup()
       render(<Toolbar />)
 
-      const dropdownTrigger = screen.getByTestId('advanced-tools-dropdown')
+      const dropdownTrigger = screen.getByTestId('secondary-tools-dropdown')
       await user.click(dropdownTrigger)
 
       const brushOption = await screen.findByTestId('mode-brush')
@@ -141,7 +141,7 @@ describe('Toolbar', () => {
       const user = userEvent.setup()
       render(<Toolbar />)
 
-      const dropdownTrigger = screen.getByTestId('advanced-tools-dropdown')
+      const dropdownTrigger = screen.getByTestId('secondary-tools-dropdown')
       await user.click(dropdownTrigger)
 
       const seedOption = await screen.findByTestId('mode-seed')
@@ -154,7 +154,7 @@ describe('Toolbar', () => {
       const user = userEvent.setup()
       render(<Toolbar />)
 
-      const dropdownTrigger = screen.getByTestId('advanced-tools-dropdown')
+      const dropdownTrigger = screen.getByTestId('secondary-tools-dropdown')
       await user.click(dropdownTrigger)
 
       const importOption = await screen.findByTestId('mode-import')
@@ -173,7 +173,7 @@ describe('Toolbar', () => {
       // They should be after the dropdown trigger
       const undoRedo = allButtons.filter(btn => {
         const testId = btn.getAttribute('data-testid')
-        const isDropdown = testId === 'advanced-tools-dropdown'
+        const isDropdown = testId === 'secondary-tools-dropdown'
         const isToggleItem = btn.getAttribute('role') === 'radio'
         return !isDropdown && !isToggleItem && !btn.textContent?.includes('?')
       })

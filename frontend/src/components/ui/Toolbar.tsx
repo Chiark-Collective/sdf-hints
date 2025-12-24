@@ -91,7 +91,7 @@ export function Toolbar() {
                 <ToggleGroup.Item
                   value={value}
                   aria-label={ariaLabel}
-                  data-testid={`mode-${ariaLabel.toLowerCase().replace(' ', '-')}`}
+                  data-testid={`mode-${value}`}
                   className={`
                     p-2 rounded transition-colors
                     ${mode === value
@@ -125,7 +125,7 @@ export function Toolbar() {
             <Tooltip.Trigger asChild>
               <DropdownMenu.Trigger asChild>
                 <button
-                  data-testid="advanced-tools-dropdown"
+                  data-testid="secondary-tools-dropdown"
                   className={`
                     p-2 rounded transition-colors flex items-center gap-1
                     ${SECONDARY_MODES.includes(mode)
@@ -157,7 +157,7 @@ export function Toolbar() {
               {secondaryModes.map(({ value, icon: Icon, label, shortcut, ariaLabel }) => (
                 <DropdownMenu.Item
                   key={value}
-                  data-testid={`mode-${ariaLabel.toLowerCase()}`}
+                  data-testid={`mode-${value}`}
                   className={`
                     flex items-center gap-3 px-3 py-2 rounded cursor-pointer outline-none
                     ${mode === value

@@ -8,10 +8,23 @@ test.describe('Toolbar Mode Switching', () => {
     await app.goto()
   })
 
-  test('should display all mode buttons in toolbar', async ({ app, page }) => {
-    const modes = ['orbit', 'primitive', 'slice', 'brush', 'seed', 'import'] as const
+  test('should display primary mode buttons in toolbar', async ({ page }) => {
+    // Primary modes are visible directly
+    const primaryModes = ['orbit', 'ray_scribble', 'click_pocket', 'slice'] as const
+    for (const mode of primaryModes) {
+      await expect(page.locator(`[data-testid="mode-${mode}"]`)).toBeVisible()
+    }
+  })
 
-    for (const mode of modes) {
+  test('should display secondary tools dropdown', async ({ page }) => {
+    await expect(page.locator('[data-testid="secondary-tools-dropdown"]')).toBeVisible()
+  })
+
+  test('should display secondary modes in dropdown', async ({ app, page }) => {
+    await app.openSecondaryToolsDropdown()
+
+    const secondaryModes = ['primitive', 'brush', 'seed', 'import'] as const
+    for (const mode of secondaryModes) {
       await expect(page.locator(`[data-testid="mode-${mode}"]`)).toBeVisible()
     }
   })
@@ -21,10 +34,12 @@ test.describe('Toolbar Mode Switching', () => {
     await expect(orbitButton).toHaveClass(/bg-blue-600/)
   })
 
-  test('should switch to Primitive mode', async ({ app }) => {
+  test('should switch to Primitive mode via dropdown', async ({ app, page }) => {
     await app.selectMode('Primitive')
 
-    await expect(app.getModeButton('Primitive')).toHaveClass(/bg-blue-600/)
+    // Dropdown should be highlighted when secondary mode is active
+    const dropdown = page.locator('[data-testid="secondary-tools-dropdown"]')
+    await expect(dropdown).toHaveClass(/bg-blue-600/)
 
     // Orbit should no longer be active
     await expect(app.getModeButton('Orbit')).not.toHaveClass(/bg-blue-600/)
@@ -36,28 +51,30 @@ test.describe('Toolbar Mode Switching', () => {
     await expect(app.getModeButton('Slice')).toHaveClass(/bg-blue-600/)
   })
 
-  test('should switch to Brush mode', async ({ app }) => {
+  test('should switch to Brush mode via dropdown', async ({ app, page }) => {
     await app.selectMode('Brush')
 
-    await expect(app.getModeButton('Brush')).toHaveClass(/bg-blue-600/)
+    const dropdown = page.locator('[data-testid="secondary-tools-dropdown"]')
+    await expect(dropdown).toHaveClass(/bg-blue-600/)
   })
 
-  test('should switch to Seed mode', async ({ app }) => {
+  test('should switch to Seed mode via dropdown', async ({ app, page }) => {
     await app.selectMode('Seed')
 
-    await expect(app.getModeButton('Seed')).toHaveClass(/bg-blue-600/)
+    const dropdown = page.locator('[data-testid="secondary-tools-dropdown"]')
+    await expect(dropdown).toHaveClass(/bg-blue-600/)
   })
 
-  test('should switch to Import mode', async ({ app }) => {
+  test('should switch to Import mode via dropdown', async ({ app, page }) => {
     await app.selectMode('Import')
 
-    await expect(app.getModeButton('Import')).toHaveClass(/bg-blue-600/)
+    const dropdown = page.locator('[data-testid="secondary-tools-dropdown"]')
+    await expect(dropdown).toHaveClass(/bg-blue-600/)
   })
 
   test('should return to Orbit mode', async ({ app }) => {
     // Switch away first
     await app.selectMode('Primitive')
-    await expect(app.getModeButton('Primitive')).toHaveClass(/bg-blue-600/)
 
     // Switch back to Orbit
     await app.selectMode('Orbit')
@@ -70,10 +87,23 @@ test.describe('Keyboard Shortcuts', () => {
     await app.goto()
   })
 
-  test('should switch to Primitive mode with P key', async ({ app, page }) => {
+  test('should switch to Ray Scribble mode with R key', async ({ page }) => {
+    await page.keyboard.press('r')
+
+    await expect(page.locator('[data-testid="mode-ray_scribble"]')).toHaveClass(/bg-blue-600/)
+  })
+
+  test('should switch to Click Pocket mode with C key', async ({ page }) => {
+    await page.keyboard.press('c')
+
+    await expect(page.locator('[data-testid="mode-click_pocket"]')).toHaveClass(/bg-blue-600/)
+  })
+
+  test('should switch to Primitive mode with P key', async ({ page }) => {
     await page.keyboard.press('p')
 
-    await expect(app.getModeButton('Primitive')).toHaveClass(/bg-blue-600/)
+    // Secondary modes highlight the dropdown
+    await expect(page.locator('[data-testid="secondary-tools-dropdown"]')).toHaveClass(/bg-blue-600/)
   })
 
   test('should switch to Slice mode with S key', async ({ app, page }) => {
@@ -82,28 +112,28 @@ test.describe('Keyboard Shortcuts', () => {
     await expect(app.getModeButton('Slice')).toHaveClass(/bg-blue-600/)
   })
 
-  test('should switch to Brush mode with B key', async ({ app, page }) => {
+  test('should switch to Brush mode with B key', async ({ page }) => {
     await page.keyboard.press('b')
 
-    await expect(app.getModeButton('Brush')).toHaveClass(/bg-blue-600/)
+    await expect(page.locator('[data-testid="secondary-tools-dropdown"]')).toHaveClass(/bg-blue-600/)
   })
 
-  test('should switch to Seed mode with G key', async ({ app, page }) => {
+  test('should switch to Seed mode with G key', async ({ page }) => {
     await page.keyboard.press('g')
 
-    await expect(app.getModeButton('Seed')).toHaveClass(/bg-blue-600/)
+    await expect(page.locator('[data-testid="secondary-tools-dropdown"]')).toHaveClass(/bg-blue-600/)
   })
 
-  test('should switch to Import mode with I key', async ({ app, page }) => {
+  test('should switch to Import mode with I key', async ({ page }) => {
     await page.keyboard.press('i')
 
-    await expect(app.getModeButton('Import')).toHaveClass(/bg-blue-600/)
+    await expect(page.locator('[data-testid="secondary-tools-dropdown"]')).toHaveClass(/bg-blue-600/)
   })
 
   test('should return to Orbit mode with Escape key', async ({ app, page }) => {
     // Switch to another mode first
-    await page.keyboard.press('p')
-    await expect(app.getModeButton('Primitive')).toHaveClass(/bg-blue-600/)
+    await page.keyboard.press('r')
+    await expect(page.locator('[data-testid="mode-ray_scribble"]')).toHaveClass(/bg-blue-600/)
 
     // Press Escape to return to Orbit
     await page.keyboard.press('Escape')
@@ -123,7 +153,6 @@ test.describe('Keyboard Shortcuts', () => {
 
     // Should still be in Orbit mode
     await expect(app.getModeButton('Orbit')).toHaveClass(/bg-blue-600/)
-    await expect(app.getModeButton('Primitive')).not.toHaveClass(/bg-blue-600/)
   })
 })
 
@@ -168,9 +197,9 @@ test.describe('Primitive Mode Sub-options', () => {
     await app.selectMode('Primitive')
   })
 
-  test('should switch primitive type with keyboard in Primitive mode', async ({ app, page }) => {
+  test('should switch primitive type with keyboard in Primitive mode', async ({ page }) => {
     // Press B for box (should already be default)
-    await page.keyboard.press('b')
+    await page.keyboard.press('x')  // X for box
     // Box should be selected (we'd check the primitive store, but for E2E we check UI)
 
     // Press O for sphere
@@ -179,11 +208,11 @@ test.describe('Primitive Mode Sub-options', () => {
     // Press H for halfspace
     await page.keyboard.press('h')
 
-    // Press C for cylinder
-    await page.keyboard.press('c')
+    // Press Y for cylinder (C is now click_pocket)
+    await page.keyboard.press('y')
 
-    // Mode should still be Primitive
-    await expect(app.getModeButton('Primitive')).toHaveClass(/bg-blue-600/)
+    // Mode should still be Primitive (dropdown highlighted)
+    await expect(page.locator('[data-testid="secondary-tools-dropdown"]')).toHaveClass(/bg-blue-600/)
   })
 })
 
@@ -192,19 +221,36 @@ test.describe('Mode-specific UI', () => {
     await app.goto()
   })
 
+  test('should show ray scribble options in Ray Scribble mode', async ({ app, page }) => {
+    await app.selectMode('RayScribble')
+
+    // Should see ray scribble related UI
+    await expect(page.getByText(/Empty Band|Scribble|Ray/i).first()).toBeVisible()
+  })
+
+  test('should show pocket options in Click Pocket mode', async ({ app, page }) => {
+    // Click Pocket panel requires a project to be loaded
+    await app.createProject('Test Pocket Mode')
+    await app.selectMode('ClickPocket')
+
+    // Should see "Click Pocket" heading in the panel (use locator for h4 element)
+    await expect(page.locator('h4').filter({ hasText: 'Click Pocket' })).toBeVisible()
+  })
+
   test('should show primitive options in Primitive mode', async ({ app, page }) => {
     await app.selectMode('Primitive')
 
     // Should see primitive type selector or related UI
-    // Check for primitive-related text in label panel
     await expect(page.getByText(/Box|Sphere|Halfspace|Cylinder/).first()).toBeVisible()
   })
 
   test('should show slice options in Slice mode', async ({ app, page }) => {
+    // Slice panel requires a project to be loaded
+    await app.createProject('Test Slice Mode')
     await app.selectMode('Slice')
 
-    // Should see slice plane selector (XY, XZ, YZ)
-    await expect(page.getByText(/XY|XZ|YZ/).first()).toBeVisible()
+    // Should see slice plane heading
+    await expect(page.getByText('Slice Plane')).toBeVisible()
   })
 
   test('should show brush options in Brush mode', async ({ app, page }) => {

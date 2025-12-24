@@ -78,22 +78,64 @@ export class AppHelper {
     this.page.once('dialog', (dialog) => dialog.accept())
   }
 
-  // Toolbar
+  // Toolbar - new structure with primary and secondary modes
   get toolbar(): Locator {
-    return this.page.locator('[class*="border-b"][class*="border-gray-800"]').filter({ hasText: 'Orbit' }).first()
+    return this.page.locator('[class*="border-b"][class*="border-gray-800"]').filter({ hasText: 'Navigate' }).first()
   }
 
-  async selectMode(mode: 'Orbit' | 'Primitive' | 'Slice' | 'Brush' | 'Seed' | 'Import') {
-    await this.page.locator(`[data-testid="mode-${mode.toLowerCase()}"]`).click()
+  // Primary modes (visible in toolbar)
+  get primaryModes() {
+    return ['orbit', 'ray_scribble', 'click_pocket', 'slice'] as const
   }
 
-  getModeButton(mode: 'Orbit' | 'Primitive' | 'Slice' | 'Brush' | 'Seed' | 'Import'): Locator {
-    return this.page.locator(`[data-testid="mode-${mode.toLowerCase()}"]`)
+  // Secondary modes (in dropdown)
+  get secondaryModes() {
+    return ['primitive', 'brush', 'seed', 'import'] as const
+  }
+
+  /**
+   * Select a mode - handles both primary (visible) and secondary (dropdown) modes
+   */
+  async selectMode(mode: 'Orbit' | 'Primitive' | 'Slice' | 'Brush' | 'Seed' | 'Import' | 'RayScribble' | 'ClickPocket') {
+    const modeKey = mode.toLowerCase().replace('rayscribble', 'ray_scribble').replace('clickpocket', 'click_pocket')
+
+    // Primary modes are directly clickable
+    if (this.primaryModes.includes(modeKey as typeof this.primaryModes[number])) {
+      await this.page.locator(`[data-testid="mode-${modeKey}"]`).click()
+    } else {
+      // Secondary modes require opening the dropdown first
+      await this.openSecondaryToolsDropdown()
+      await this.page.locator(`[data-testid="mode-${modeKey}"]`).click()
+    }
+  }
+
+  /**
+   * Open the Advanced Tools dropdown
+   */
+  async openSecondaryToolsDropdown() {
+    const dropdownTrigger = this.page.locator('[data-testid="secondary-tools-dropdown"]')
+    await dropdownTrigger.click()
+    // Wait for dropdown content to be visible
+    await this.page.waitForSelector('[role="menu"]', { timeout: 2000 })
+  }
+
+  getModeButton(mode: 'Orbit' | 'Primitive' | 'Slice' | 'Brush' | 'Seed' | 'Import' | 'RayScribble' | 'ClickPocket'): Locator {
+    const modeKey = mode.toLowerCase().replace('rayscribble', 'ray_scribble').replace('clickpocket', 'click_pocket')
+    return this.page.locator(`[data-testid="mode-${modeKey}"]`)
   }
 
   async getActiveMode(): Promise<string> {
     const activeButton = this.toolbar.locator('button[class*="bg-blue-600"]')
     return (await activeButton.textContent()) || ''
+  }
+
+  /**
+   * Check if a secondary mode is currently active (dropdown trigger shows highlight)
+   */
+  async isSecondaryModeActive(): Promise<boolean> {
+    const dropdownTrigger = this.page.locator('[data-testid="secondary-tools-dropdown"]')
+    const classes = await dropdownTrigger.getAttribute('class')
+    return classes?.includes('ring-') || classes?.includes('border-blue') || false
   }
 
   // Status Bar
