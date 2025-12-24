@@ -86,6 +86,7 @@ export interface RayCarveConstraint extends BaseConstraint {
   rays: RayInfo[]
   emptyBandWidth: number
   surfaceBandWidth: number
+  backBufferWidth: number  // Distance past hit to sample (0 = no bleed-through)
 }
 
 export interface PocketConstraint extends BaseConstraint {

@@ -30,6 +30,7 @@ export function RayScribblePainter({ projectId }: RayScribblePainterProps) {
 
   const emptyBandWidth = useRayScribbleStore((s) => s.emptyBandWidth)
   const surfaceBandWidth = useRayScribbleStore((s) => s.surfaceBandWidth)
+  const backBufferWidth = useRayScribbleStore((s) => s.backBufferWidth)
   const isScribbling = useRayScribbleStore((s) => s.isScribbling)
   const currentStrokeRays = useRayScribbleStore((s) => s.currentStrokeRays)
   const startStroke = useRayScribbleStore((s) => s.startStroke)
@@ -136,6 +137,7 @@ export function RayScribblePainter({ projectId }: RayScribblePainterProps) {
         })),
         emptyBandWidth,
         surfaceBandWidth,
+        backBufferWidth,
       }
 
       addConstraint(projectId, constraint)
@@ -146,6 +148,7 @@ export function RayScribblePainter({ projectId }: RayScribblePainterProps) {
     activeLabel,
     emptyBandWidth,
     surfaceBandWidth,
+    backBufferWidth,
     addConstraint,
     projectId,
   ])

@@ -130,7 +130,7 @@ class RayCarveConstraint(BaseConstraint):
 
     Each ray defines:
     - EMPTY samples along ray from origin to (hit_distance - empty_band)
-    - SURFACE samples near hit_distance
+    - SURFACE samples near hit_distance (from -surface_band to +back_buffer)
     """
 
     type: Literal["ray_carve"] = "ray_carve"
@@ -139,7 +139,10 @@ class RayCarveConstraint(BaseConstraint):
         default=0.1, gt=0, description="Distance before hit to sample as EMPTY"
     )
     surface_band_width: float = Field(
-        default=0.02, gt=0, description="Distance around hit for SURFACE samples"
+        default=0.02, gt=0, description="Distance before hit for SURFACE samples"
+    )
+    back_buffer_width: float = Field(
+        default=0.0, ge=0, description="Distance past hit to sample (0 = no bleed-through)"
     )
 
 

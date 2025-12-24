@@ -517,12 +517,13 @@ class SamplingService:
                         )
                     )
 
-            # SURFACE samples near hit
+            # SURFACE samples near hit (from -surface_band to +back_buffer)
+            # back_buffer_width defaults to 0, preventing bleed-through
             n_surface = n_samples_per_ray - n_empty
             for _ in range(n_surface):
                 t = rng.uniform(
                     hit_dist - constraint.surface_band_width,
-                    hit_dist + constraint.surface_band_width,
+                    hit_dist + constraint.back_buffer_width,
                 )
                 point = origin + t * direction
                 phi = t - hit_dist  # Signed distance from surface

@@ -10,6 +10,7 @@ describe('rayScribbleStore', () => {
     useRayScribbleStore.setState({
       emptyBandWidth: 0.1,
       surfaceBandWidth: 0.02,
+      backBufferWidth: 0.0,
       strokes: [],
       isScribbling: false,
       currentStrokeRays: [],
@@ -33,6 +34,15 @@ describe('rayScribbleStore', () => {
     it('should update surface band width', () => {
       useRayScribbleStore.getState().setSurfaceBandWidth(0.05)
       expect(useRayScribbleStore.getState().surfaceBandWidth).toBe(0.05)
+    })
+
+    it('should initialize with default back buffer width of 0 (no bleed-through)', () => {
+      expect(useRayScribbleStore.getState().backBufferWidth).toBe(0.0)
+    })
+
+    it('should update back buffer width', () => {
+      useRayScribbleStore.getState().setBackBufferWidth(0.01)
+      expect(useRayScribbleStore.getState().backBufferWidth).toBe(0.01)
     })
   })
 

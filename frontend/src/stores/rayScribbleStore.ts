@@ -20,6 +20,7 @@ interface RayScribbleState {
   // Settings
   emptyBandWidth: number
   surfaceBandWidth: number
+  backBufferWidth: number  // Distance past hit to sample (0 = no bleed-through)
 
   // Stroke state
   strokes: RayStroke[]
@@ -29,6 +30,7 @@ interface RayScribbleState {
   // Actions
   setEmptyBandWidth: (width: number) => void
   setSurfaceBandWidth: (width: number) => void
+  setBackBufferWidth: (width: number) => void
 
   startStroke: () => void
   addRayToStroke: (ray: RayInfo) => void
@@ -44,6 +46,7 @@ export const useRayScribbleStore = create<RayScribbleState>((set, get) => ({
   // Default settings
   emptyBandWidth: 0.1,
   surfaceBandWidth: 0.02,
+  backBufferWidth: 0.0,  // Default to 0: no bleed-through
 
   // Initial state
   strokes: [],
@@ -53,6 +56,7 @@ export const useRayScribbleStore = create<RayScribbleState>((set, get) => ({
   // Setting actions
   setEmptyBandWidth: (width) => set({ emptyBandWidth: width }),
   setSurfaceBandWidth: (width) => set({ surfaceBandWidth: width }),
+  setBackBufferWidth: (width) => set({ backBufferWidth: width }),
 
   // Stroke actions
   startStroke: () => set({ isScribbling: true, currentStrokeRays: [] }),
