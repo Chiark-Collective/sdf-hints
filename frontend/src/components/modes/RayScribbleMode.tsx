@@ -2,6 +2,7 @@
 // ABOUTME: Controls empty band width and displays scribbling instructions
 
 import * as Slider from '@radix-ui/react-slider'
+import { HelpTooltip } from '../ui/HelpTooltip'
 
 export interface RayScribbleModeProps {
   emptyBandWidth: number
@@ -23,20 +24,20 @@ export function RayScribbleMode({
   onClearStrokes,
 }: RayScribbleModeProps) {
   return (
-    <div className="p-4 space-y-4">
-      <div>
-        <h4 className="text-sm font-medium mb-2">Ray Scribble</h4>
-        <p className="text-xs text-gray-400 mb-4">
-          Scribble in screen space to mark free space. Rays are cast through each stroke point
-          to find the surface, marking everything before the hit as empty.
-        </p>
+    <div className="p-4 space-y-3 border-b border-gray-800">
+      <div className="flex items-center gap-2">
+        <h4 className="text-sm font-medium">Ray Scribble</h4>
+        <HelpTooltip content="Scribble to mark free space. Rays cast through stroke points find the surface, marking everything before the hit as empty." />
       </div>
 
       {/* Empty band width slider */}
-      <div className="space-y-2">
-        <div className="flex justify-between text-sm">
-          <label className="text-gray-400">Empty band width</label>
-          <span className="text-gray-300">{emptyBandWidth.toFixed(2)}</span>
+      <div className="space-y-1">
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center gap-1">
+            <label className="text-gray-400">Empty band</label>
+            <HelpTooltip content="Distance before the hit point to mark as empty space" />
+          </div>
+          <span className="text-gray-300 tabular-nums">{emptyBandWidth.toFixed(2)}</span>
         </div>
         <Slider.Root
           className="relative flex items-center select-none touch-none w-full h-5"
@@ -54,16 +55,16 @@ export function RayScribbleMode({
             aria-label="Empty band width"
           />
         </Slider.Root>
-        <p className="text-xs text-gray-500">
-          How far before the hit point to mark as empty
-        </p>
       </div>
 
       {/* Surface band width slider */}
-      <div className="space-y-2">
-        <div className="flex justify-between text-sm">
-          <label className="text-gray-400">Surface band width</label>
-          <span className="text-gray-300">{surfaceBandWidth.toFixed(3)}</span>
+      <div className="space-y-1">
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center gap-1">
+            <label className="text-gray-400">Surface band</label>
+            <HelpTooltip content="Width of the surface region around the hit point" />
+          </div>
+          <span className="text-gray-300 tabular-nums">{surfaceBandWidth.toFixed(3)}</span>
         </div>
         <Slider.Root
           className="relative flex items-center select-none touch-none w-full h-5"
@@ -81,40 +82,25 @@ export function RayScribbleMode({
             aria-label="Surface band width"
           />
         </Slider.Root>
-        <p className="text-xs text-gray-500">
-          Width of surface region around hit point
-        </p>
       </div>
 
-      {/* Status */}
-      <div className="pt-2 border-t border-gray-800">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-400">Strokes</span>
+      {/* Status + Clear */}
+      <div className="flex items-center justify-between pt-1">
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-gray-400">Strokes:</span>
           <span className="text-gray-300">{strokeCount}</span>
+          {isScribbling && (
+            <span className="text-orange-400 text-xs">Drawing...</span>
+          )}
         </div>
-        {isScribbling && (
-          <p className="text-xs text-orange-400 mt-1">Drawing...</p>
+        {strokeCount > 0 && (
+          <button
+            onClick={onClearStrokes}
+            className="px-2 py-1 text-xs bg-gray-800 text-gray-400 rounded hover:bg-gray-700 hover:text-gray-300 transition-colors"
+          >
+            Clear
+          </button>
         )}
-      </div>
-
-      {/* Clear button */}
-      {strokeCount > 0 && (
-        <button
-          onClick={onClearStrokes}
-          className="w-full px-3 py-2 text-sm bg-gray-800 text-gray-300 rounded hover:bg-gray-700 transition-colors"
-        >
-          Clear Strokes
-        </button>
-      )}
-
-      {/* Instructions */}
-      <div className="pt-2 border-t border-gray-800">
-        <h5 className="text-xs font-medium text-gray-500 mb-1">Instructions</h5>
-        <ul className="text-xs text-gray-400 space-y-1">
-          <li>Click and drag to scribble</li>
-          <li>Rays cast through stroke mark empty space</li>
-          <li>Use Tab to switch between solid/empty labels</li>
-        </ul>
       </div>
     </div>
   )

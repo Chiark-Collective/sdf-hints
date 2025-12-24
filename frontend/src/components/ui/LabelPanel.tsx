@@ -359,39 +359,40 @@ export function LabelPanel() {
         </ToggleGroup.Root>
       </div>
 
-      {/* Mode-specific settings */}
-      {mode === 'ray_scribble' && (
-        <RayScribbleModePanel />
-      )}
+      {/* Scrollable content area - mode panels + constraints */}
+      <div className="flex-1 overflow-y-auto min-h-0">
+        {/* Mode-specific settings */}
+        {mode === 'ray_scribble' && (
+          <RayScribbleModePanel />
+        )}
 
-      {mode === 'click_pocket' && currentProjectId && (
-        <ClickPocketModePanel projectId={currentProjectId} />
-      )}
+        {mode === 'click_pocket' && currentProjectId && (
+          <ClickPocketModePanel projectId={currentProjectId} />
+        )}
 
-      {mode === 'primitive' && (
-        <div className="border-b border-gray-800">
-          <PrimitiveMode />
-        </div>
-      )}
+        {mode === 'primitive' && (
+          <div className="border-b border-gray-800">
+            <PrimitiveMode />
+          </div>
+        )}
 
-      {mode === 'slice' && currentProjectId && (
-        <SliceModePanel projectId={currentProjectId} />
-      )}
+        {mode === 'slice' && currentProjectId && (
+          <SliceModePanel projectId={currentProjectId} />
+        )}
 
-      {mode === 'brush' && (
-        <BrushModePanel />
-      )}
+        {mode === 'brush' && (
+          <BrushModePanel />
+        )}
 
-      {mode === 'seed' && currentProjectId && (
-        <SeedModePanel projectId={currentProjectId} />
-      )}
+        {mode === 'seed' && currentProjectId && (
+          <SeedModePanel projectId={currentProjectId} />
+        )}
 
-      {mode === 'import' && currentProjectId && (
-        <MLImportModePanel projectId={currentProjectId} />
-      )}
+        {mode === 'import' && currentProjectId && (
+          <MLImportModePanel projectId={currentProjectId} />
+        )}
 
-      {/* Constraints list */}
-      <div className="flex-1 overflow-y-auto">
+        {/* Constraints list */}
         <div className="p-4">
           <h3 className="text-sm font-medium mb-3">
             Constraints ({constraints.length})

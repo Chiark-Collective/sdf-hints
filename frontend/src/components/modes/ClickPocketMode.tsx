@@ -2,6 +2,7 @@
 // ABOUTME: Shows detected pockets and allows toggling solid/empty state
 
 import { LoadingButton } from '../ui/Spinner'
+import { HelpTooltip } from '../ui/HelpTooltip'
 
 export interface PocketInfo {
   pocketId: number
@@ -31,31 +32,29 @@ export function ClickPocketMode({
   onSelectPocket,
 }: ClickPocketModeProps) {
   return (
-    <div className="p-4 space-y-4">
-      <div>
-        <h4 className="text-sm font-medium mb-2">Click Pocket</h4>
-        <p className="text-xs text-gray-400 mb-4">
-          Auto-detect enclosed cavities in the point cloud. Click pockets to toggle
-          between solid (filled) and empty (cavity).
-        </p>
+    <div className="p-4 space-y-3 border-b border-gray-800">
+      <div className="flex items-center gap-2">
+        <h4 className="text-sm font-medium">Click Pocket</h4>
+        <HelpTooltip content="Auto-detect enclosed cavities. Click pockets to toggle between solid (filled) and empty (cavity)." />
       </div>
 
       {/* Analyze button */}
       <LoadingButton
         onClick={onAnalyze}
         loading={isAnalyzing}
-        className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
+        className="w-full px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
       >
-        {pockets.length > 0 ? 'Re-analyze Pockets' : 'Detect Pockets'}
+        {pockets.length > 0 ? 'Re-analyze' : 'Detect Pockets'}
       </LoadingButton>
 
       {/* Pocket list */}
       {pockets.length > 0 && (
-        <div className="space-y-2">
-          <h5 className="text-xs font-medium text-gray-500">
-            Detected Pockets ({pockets.length})
-          </h5>
-          <ul className="space-y-1 max-h-48 overflow-y-auto">
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-500">Pockets ({pockets.length})</span>
+            <HelpTooltip content="Click pocket in 3D view to select. Orange = empty, Blue = solid." />
+          </div>
+          <ul className="space-y-1 max-h-32 overflow-y-auto">
             {pockets.map((pocket) => (
               <PocketItem
                 key={pocket.pocketId}
@@ -72,20 +71,10 @@ export function ClickPocketMode({
       )}
 
       {pockets.length === 0 && !isAnalyzing && (
-        <p className="text-sm text-gray-500 text-center py-4">
-          Click "Detect Pockets" to find cavities
+        <p className="text-xs text-gray-500 text-center py-2">
+          No pockets detected yet
         </p>
       )}
-
-      {/* Instructions */}
-      <div className="pt-2 border-t border-gray-800">
-        <h5 className="text-xs font-medium text-gray-500 mb-1">Instructions</h5>
-        <ul className="text-xs text-gray-400 space-y-1">
-          <li>Click a pocket in the 3D view to select</li>
-          <li>Selected pockets can be toggled solid/empty</li>
-          <li>Orange = empty (cavity), Blue = solid (filled)</li>
-        </ul>
-      </div>
     </div>
   )
 }
