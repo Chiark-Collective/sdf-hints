@@ -9,6 +9,8 @@ export interface RayScribbleModeProps {
   setEmptyBandWidth: (width: number) => void
   surfaceBandWidth: number
   setSurfaceBandWidth: (width: number) => void
+  backBufferWidth: number
+  setBackBufferWidth: (width: number) => void
   isScribbling: boolean
   strokeCount: number
   onClearStrokes: () => void
@@ -19,6 +21,8 @@ export function RayScribbleMode({
   setEmptyBandWidth,
   surfaceBandWidth,
   setSurfaceBandWidth,
+  backBufferWidth,
+  setBackBufferWidth,
   isScribbling,
   strokeCount,
   onClearStrokes,
@@ -80,6 +84,33 @@ export function RayScribbleMode({
           <Slider.Thumb
             className="block w-4 h-4 bg-white rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             aria-label="Surface band width"
+          />
+        </Slider.Root>
+      </div>
+
+      {/* Back buffer width slider */}
+      <div className="space-y-1">
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center gap-1">
+            <label className="text-gray-400">Back buffer</label>
+            <HelpTooltip content="How far past the surface to sample. 0 = no bleed-through (recommended for thin surfaces)" />
+          </div>
+          <span className="text-gray-300 tabular-nums">{backBufferWidth.toFixed(3)}</span>
+        </div>
+        <Slider.Root
+          className="relative flex items-center select-none touch-none w-full h-5"
+          value={[backBufferWidth]}
+          onValueChange={([v]) => setBackBufferWidth(v)}
+          min={0}
+          max={0.05}
+          step={0.001}
+        >
+          <Slider.Track className="bg-gray-700 relative grow rounded-full h-[3px]">
+            <Slider.Range className="absolute bg-purple-500 rounded-full h-full" />
+          </Slider.Track>
+          <Slider.Thumb
+            className="block w-4 h-4 bg-white rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            aria-label="Back buffer width"
           />
         </Slider.Root>
       </div>

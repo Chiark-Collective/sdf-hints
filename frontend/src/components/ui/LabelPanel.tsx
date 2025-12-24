@@ -141,22 +141,24 @@ function RayScribbleModePanel() {
   const setEmptyBandWidth = useRayScribbleStore((s) => s.setEmptyBandWidth)
   const surfaceBandWidth = useRayScribbleStore((s) => s.surfaceBandWidth)
   const setSurfaceBandWidth = useRayScribbleStore((s) => s.setSurfaceBandWidth)
+  const backBufferWidth = useRayScribbleStore((s) => s.backBufferWidth)
+  const setBackBufferWidth = useRayScribbleStore((s) => s.setBackBufferWidth)
   const isScribbling = useRayScribbleStore((s) => s.isScribbling)
   const strokes = useRayScribbleStore((s) => s.strokes)
   const clearStrokes = useRayScribbleStore((s) => s.clearStrokes)
 
   return (
-    <div className="border-b border-gray-800">
-      <RayScribbleMode
-        emptyBandWidth={emptyBandWidth}
-        setEmptyBandWidth={setEmptyBandWidth}
-        surfaceBandWidth={surfaceBandWidth}
-        setSurfaceBandWidth={setSurfaceBandWidth}
-        isScribbling={isScribbling}
-        strokeCount={strokes.length}
-        onClearStrokes={clearStrokes}
-      />
-    </div>
+    <RayScribbleMode
+      emptyBandWidth={emptyBandWidth}
+      setEmptyBandWidth={setEmptyBandWidth}
+      surfaceBandWidth={surfaceBandWidth}
+      setSurfaceBandWidth={setSurfaceBandWidth}
+      backBufferWidth={backBufferWidth}
+      setBackBufferWidth={setBackBufferWidth}
+      isScribbling={isScribbling}
+      strokeCount={strokes.length}
+      onClearStrokes={clearStrokes}
+    />
   )
 }
 
