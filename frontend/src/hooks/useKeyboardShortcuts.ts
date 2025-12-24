@@ -60,9 +60,15 @@ export function useKeyboardShortcuts() {
           }
           break
 
-        case 'p':
+        // Primary modes
+        case 'r':
           e.preventDefault()
-          setMode('primitive')
+          setMode('ray_scribble')
+          break
+
+        case 'c':
+          e.preventDefault()
+          setMode('click_pocket')
           break
 
         case 's':
@@ -71,6 +77,12 @@ export function useKeyboardShortcuts() {
             e.preventDefault()
             setMode('slice')
           }
+          break
+
+        // Secondary modes
+        case 'p':
+          e.preventDefault()
+          setMode('primitive')
           break
 
         case 'b':
@@ -118,7 +130,8 @@ export function useKeyboardShortcuts() {
           }
           break
 
-        case 'c':
+        case 'y':
+          // Y for cYlinder (C is now click_pocket)
           if (mode === 'primitive') {
             e.preventDefault()
             setPrimitiveType('cylinder')

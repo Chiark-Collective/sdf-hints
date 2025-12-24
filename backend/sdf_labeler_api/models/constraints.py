@@ -114,6 +114,59 @@ class MLImportConstraint(BaseConstraint):
     )
 
 
+class RayInfo(BaseModel):
+    """Single ray from a ray-scribble interaction."""
+
+    origin: tuple[float, float, float] = Field(..., description="Ray origin (camera position)")
+    direction: tuple[float, float, float] = Field(..., description="Normalized ray direction")
+    hit_distance: float = Field(..., gt=0, description="Distance to first point cloud hit")
+    surface_normal: tuple[float, float, float] | None = Field(
+        default=None, description="Surface normal at hit point if available"
+    )
+
+
+class RayCarveConstraint(BaseConstraint):
+    """Constraint from ray-scribble interaction.
+
+    Each ray defines:
+    - EMPTY samples along ray from origin to (hit_distance - empty_band)
+    - SURFACE samples near hit_distance
+    """
+
+    type: Literal["ray_carve"] = "ray_carve"
+    rays: list[RayInfo] = Field(..., description="Rays cast during scribble stroke")
+    empty_band_width: float = Field(
+        default=0.1, gt=0, description="Distance before hit to sample as EMPTY"
+    )
+    surface_band_width: float = Field(
+        default=0.02, gt=0, description="Distance around hit for SURFACE samples"
+    )
+
+
+class PocketConstraint(BaseConstraint):
+    """Pocket (cavity) constraint from voxel analysis."""
+
+    type: Literal["pocket"] = "pocket"
+    pocket_id: int = Field(..., description="Pocket identifier from analysis")
+    voxel_count: int = Field(..., description="Number of voxels in pocket")
+    centroid: tuple[float, float, float] = Field(..., description="Pocket centroid")
+    bounds_low: tuple[float, float, float] = Field(..., description="Pocket AABB min")
+    bounds_high: tuple[float, float, float] = Field(..., description="Pocket AABB max")
+    volume_estimate: float = Field(..., description="Estimated volume in world units")
+
+
+class SliceSelectionConstraint(BaseConstraint):
+    """Constraint from 2D slice selection.
+
+    Points selected by the user in a 2D cross-section view.
+    """
+
+    type: Literal["slice_selection"] = "slice_selection"
+    point_indices: list[int] = Field(..., description="Selected point indices")
+    slice_plane: Literal["xy", "xz", "yz"] = Field(..., description="Which plane was used")
+    slice_position: float = Field(..., description="Position along perpendicular axis")
+
+
 # Union type for all constraints
 Constraint = Annotated[
     Union[
@@ -124,6 +177,9 @@ Constraint = Annotated[
         BrushStrokeConstraint,
         SeedPropagationConstraint,
         MLImportConstraint,
+        RayCarveConstraint,
+        PocketConstraint,
+        SliceSelectionConstraint,
     ],
     Field(discriminator="type"),
 ]

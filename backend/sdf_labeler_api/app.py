@@ -30,7 +30,10 @@ from sdf_labeler_api.services.project_service import ProjectService
 from sdf_labeler_api.services.pointcloud_service import PointCloudService
 from sdf_labeler_api.services.constraint_service import ConstraintService
 from sdf_labeler_api.services.sampling_service import SamplingService
+from sdf_labeler_api.services.pocket_service import PocketService
 from sdf_labeler_api.services import scenarios_service
+from sdf_labeler_api.models.pockets import PocketAnalysis
+from sdf_labeler_api.models.constraints import SignConvention
 
 
 @asynccontextmanager
@@ -63,6 +66,7 @@ project_service = ProjectService(settings.data_dir)
 pointcloud_service = PointCloudService(settings)
 constraint_service = ConstraintService()
 sampling_service = SamplingService()
+pocket_service = PocketService(settings)
 
 
 # =============================================================================
@@ -236,6 +240,87 @@ async def delete_constraint(project_id: str, constraint_id: str):
     if not success:
         raise HTTPException(status_code=404, detail="Constraint not found")
     return {"status": "deleted", "constraint_id": constraint_id}
+
+
+# =============================================================================
+# Pocket Detection
+# =============================================================================
+
+
+@app.post("/v1/projects/{project_id}/pockets/analyze", response_model=PocketAnalysis)
+async def analyze_pockets(
+    project_id: str,
+    voxel_target: int = Query(default=256, ge=64, le=512),
+    recompute: bool = Query(default=False),
+):
+    """Analyze point cloud for pockets (disconnected cavities).
+
+    This is a potentially expensive operation. Results are cached.
+    """
+    project = project_service.get(project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if project.point_cloud_id is None:
+        raise HTTPException(status_code=400, detail="No point cloud uploaded")
+
+    try:
+        return await pocket_service.analyze_pockets(
+            project_id, voxel_target=voxel_target, recompute=recompute
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/v1/projects/{project_id}/pockets", response_model=PocketAnalysis | None)
+async def get_pockets(project_id: str):
+    """Get cached pocket analysis for a project."""
+    project = project_service.get(project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    return pocket_service.get_cached_analysis(project_id)
+
+
+@app.get("/v1/projects/{project_id}/pockets/{pocket_id}/voxels")
+async def get_pocket_voxels(project_id: str, pocket_id: int):
+    """Get voxel coordinates for visualization of a specific pocket."""
+    project = project_service.get(project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    voxels = pocket_service.get_pocket_voxels(project_id, pocket_id)
+    if voxels is None:
+        raise HTTPException(status_code=404, detail="Pocket not found")
+
+    return {
+        "pocket_id": pocket_id,
+        "voxel_count": len(voxels),
+        "positions": voxels.flatten().tolist(),
+    }
+
+
+@app.post("/v1/projects/{project_id}/pockets/{pocket_id}/toggle", response_model=Constraint)
+async def toggle_pocket(
+    project_id: str,
+    pocket_id: int,
+    sign: SignConvention = Query(...),
+):
+    """Toggle a pocket's sign and create/update constraint.
+
+    SOLID = fill the pocket (negative SDF)
+    EMPTY = leave as void (positive SDF, default)
+    """
+    project = project_service.get(project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    try:
+        pocket_constraint = pocket_service.create_pocket_constraint(project_id, pocket_id, sign)
+        return constraint_service.add(project_id, pocket_constraint)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 # =============================================================================

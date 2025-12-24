@@ -1,5 +1,5 @@
 // ABOUTME: Unit tests for sliceStore
-// ABOUTME: Tests slice painting mode tool and brush settings
+// ABOUTME: Tests slice painting mode tool, brush settings, and point selection
 
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useSliceStore } from './sliceStore'
@@ -10,6 +10,7 @@ describe('sliceStore', () => {
     useSliceStore.setState({
       tool: 'brush',
       brushSize: 20,
+      selectedPointIndices: new Set(),
     })
   })
 
@@ -53,6 +54,61 @@ describe('sliceStore', () => {
     it('should accept large brush size', () => {
       useSliceStore.getState().setBrushSize(100)
       expect(useSliceStore.getState().brushSize).toBe(100)
+    })
+  })
+
+  describe('selectedPointIndices', () => {
+    it('should initialize with empty selection', () => {
+      expect(useSliceStore.getState().selectedPointIndices.size).toBe(0)
+    })
+
+    it('should add selected points', () => {
+      useSliceStore.getState().addSelectedPoints([1, 2, 3])
+      expect(useSliceStore.getState().selectedPointIndices.size).toBe(3)
+      expect(useSliceStore.getState().selectedPointIndices.has(1)).toBe(true)
+      expect(useSliceStore.getState().selectedPointIndices.has(2)).toBe(true)
+      expect(useSliceStore.getState().selectedPointIndices.has(3)).toBe(true)
+    })
+
+    it('should not duplicate points when adding', () => {
+      useSliceStore.getState().addSelectedPoints([1, 2, 3])
+      useSliceStore.getState().addSelectedPoints([2, 3, 4])
+      expect(useSliceStore.getState().selectedPointIndices.size).toBe(4)
+    })
+
+    it('should remove selected points', () => {
+      useSliceStore.getState().addSelectedPoints([1, 2, 3, 4, 5])
+      useSliceStore.getState().removeSelectedPoints([2, 4])
+
+      expect(useSliceStore.getState().selectedPointIndices.size).toBe(3)
+      expect(useSliceStore.getState().selectedPointIndices.has(1)).toBe(true)
+      expect(useSliceStore.getState().selectedPointIndices.has(2)).toBe(false)
+      expect(useSliceStore.getState().selectedPointIndices.has(3)).toBe(true)
+      expect(useSliceStore.getState().selectedPointIndices.has(4)).toBe(false)
+      expect(useSliceStore.getState().selectedPointIndices.has(5)).toBe(true)
+    })
+
+    it('should not fail when removing non-existent points', () => {
+      useSliceStore.getState().addSelectedPoints([1, 2])
+      useSliceStore.getState().removeSelectedPoints([99, 100])
+      expect(useSliceStore.getState().selectedPointIndices.size).toBe(2)
+    })
+
+    it('should clear all selected points', () => {
+      useSliceStore.getState().addSelectedPoints([1, 2, 3, 4, 5])
+      useSliceStore.getState().clearSelectedPoints()
+      expect(useSliceStore.getState().selectedPointIndices.size).toBe(0)
+    })
+
+    it('should set selected points replacing existing', () => {
+      useSliceStore.getState().addSelectedPoints([1, 2, 3])
+      useSliceStore.getState().setSelectedPoints([10, 20, 30])
+
+      expect(useSliceStore.getState().selectedPointIndices.size).toBe(3)
+      expect(useSliceStore.getState().selectedPointIndices.has(1)).toBe(false)
+      expect(useSliceStore.getState().selectedPointIndices.has(10)).toBe(true)
+      expect(useSliceStore.getState().selectedPointIndices.has(20)).toBe(true)
+      expect(useSliceStore.getState().selectedPointIndices.has(30)).toBe(true)
     })
   })
 })

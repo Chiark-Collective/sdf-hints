@@ -6,11 +6,17 @@ import { persist } from 'zustand/middleware'
 
 export type InteractionMode =
   | 'orbit'        // Default camera control
-  | 'primitive'    // Place boxes/spheres/etc
+  | 'ray_scribble' // NEW: Ray-scribble annotation
+  | 'click_pocket' // NEW: Click to detect pockets
   | 'slice'        // 2D slice painting
+  | 'primitive'    // Place boxes/spheres/etc
   | 'brush'        // 3D brush selection
   | 'seed'         // Seed + propagate
   | 'import'       // ML model import
+
+// Mode categorization for UI organization
+export const PRIMARY_MODES: InteractionMode[] = ['orbit', 'ray_scribble', 'click_pocket', 'slice']
+export const SECONDARY_MODES: InteractionMode[] = ['primitive', 'brush', 'seed', 'import']
 
 export type LabelType = 'solid' | 'empty' | 'surface'
 

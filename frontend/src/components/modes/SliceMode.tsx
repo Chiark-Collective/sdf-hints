@@ -22,9 +22,18 @@ interface SliceModeProps {
   setTool: (tool: SliceTool) => void
   brushSize: number
   setBrushSize: (size: number) => void
+  selectedPointCount?: number
+  onCreateConstraint?: () => void
 }
 
-export function SliceMode({ tool, setTool, brushSize, setBrushSize }: SliceModeProps) {
+export function SliceMode({
+  tool,
+  setTool,
+  brushSize,
+  setBrushSize,
+  selectedPointCount = 0,
+  onCreateConstraint,
+}: SliceModeProps) {
   const activeLabel = useProjectStore((s) => s.activeLabel)
   const slicePlane = useProjectStore((s) => s.slicePlane)
   const setSlicePlane = useProjectStore((s) => s.setSlicePlane)
@@ -203,6 +212,25 @@ export function SliceMode({ tool, setTool, brushSize, setBrushSize }: SliceModeP
             </Slider.Track>
             <Slider.Thumb className="block w-4 h-4 bg-white rounded-full shadow focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </Slider.Root>
+        </div>
+      )}
+
+      {/* Selection info and Create Constraint button */}
+      {selectedPointCount > 0 && (
+        <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-blue-400">
+              {selectedPointCount.toLocaleString()} points selected
+            </span>
+          </div>
+          {onCreateConstraint && (
+            <button
+              onClick={onCreateConstraint}
+              className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
+            >
+              Create Constraint
+            </button>
+          )}
         </div>
       )}
 

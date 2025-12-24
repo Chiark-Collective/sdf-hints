@@ -57,61 +57,83 @@ describe('useKeyboardShortcuts', () => {
   })
 
   describe('mode switching', () => {
-    it('should switch to primitive mode with P key', () => {
-      renderHook(() => useKeyboardShortcuts())
+    describe('primary modes', () => {
+      it('should switch to ray_scribble mode with R key', () => {
+        renderHook(() => useKeyboardShortcuts())
 
-      act(() => fireKeyDown('p'))
+        act(() => fireKeyDown('r'))
 
-      expect(useProjectStore.getState().mode).toBe('primitive')
+        expect(useProjectStore.getState().mode).toBe('ray_scribble')
+      })
+
+      it('should switch to click_pocket mode with C key', () => {
+        renderHook(() => useKeyboardShortcuts())
+
+        act(() => fireKeyDown('c'))
+
+        expect(useProjectStore.getState().mode).toBe('click_pocket')
+      })
+
+      it('should switch to slice mode with S key', () => {
+        renderHook(() => useKeyboardShortcuts())
+
+        act(() => fireKeyDown('s'))
+
+        expect(useProjectStore.getState().mode).toBe('slice')
+      })
     })
 
-    it('should switch to slice mode with S key', () => {
-      renderHook(() => useKeyboardShortcuts())
+    describe('secondary modes', () => {
+      it('should switch to primitive mode with P key', () => {
+        renderHook(() => useKeyboardShortcuts())
 
-      act(() => fireKeyDown('s'))
+        act(() => fireKeyDown('p'))
 
-      expect(useProjectStore.getState().mode).toBe('slice')
+        expect(useProjectStore.getState().mode).toBe('primitive')
+      })
+
+      it('should switch to brush mode with B key (outside primitive mode)', () => {
+        renderHook(() => useKeyboardShortcuts())
+
+        act(() => fireKeyDown('b'))
+
+        expect(useProjectStore.getState().mode).toBe('brush')
+      })
+
+      it('should switch to seed mode with G key', () => {
+        renderHook(() => useKeyboardShortcuts())
+
+        act(() => fireKeyDown('g'))
+
+        expect(useProjectStore.getState().mode).toBe('seed')
+      })
+
+      it('should switch to import mode with I key', () => {
+        renderHook(() => useKeyboardShortcuts())
+
+        act(() => fireKeyDown('i'))
+
+        expect(useProjectStore.getState().mode).toBe('import')
+      })
     })
 
-    it('should switch to brush mode with B key (outside primitive mode)', () => {
-      renderHook(() => useKeyboardShortcuts())
+    describe('escape', () => {
+      it('should return to orbit mode with Escape', () => {
+        useProjectStore.setState({ mode: 'primitive' })
+        renderHook(() => useKeyboardShortcuts())
 
-      act(() => fireKeyDown('b'))
+        act(() => fireKeyDown('Escape'))
 
-      expect(useProjectStore.getState().mode).toBe('brush')
-    })
+        expect(useProjectStore.getState().mode).toBe('orbit')
+      })
 
-    it('should switch to seed mode with G key', () => {
-      renderHook(() => useKeyboardShortcuts())
+      it('should not switch mode when already in orbit and pressing Escape', () => {
+        renderHook(() => useKeyboardShortcuts())
 
-      act(() => fireKeyDown('g'))
+        act(() => fireKeyDown('Escape'))
 
-      expect(useProjectStore.getState().mode).toBe('seed')
-    })
-
-    it('should switch to import mode with I key', () => {
-      renderHook(() => useKeyboardShortcuts())
-
-      act(() => fireKeyDown('i'))
-
-      expect(useProjectStore.getState().mode).toBe('import')
-    })
-
-    it('should return to orbit mode with Escape', () => {
-      useProjectStore.setState({ mode: 'primitive' })
-      renderHook(() => useKeyboardShortcuts())
-
-      act(() => fireKeyDown('Escape'))
-
-      expect(useProjectStore.getState().mode).toBe('orbit')
-    })
-
-    it('should not switch mode when already in orbit and pressing Escape', () => {
-      renderHook(() => useKeyboardShortcuts())
-
-      act(() => fireKeyDown('Escape'))
-
-      expect(useProjectStore.getState().mode).toBe('orbit')
+        expect(useProjectStore.getState().mode).toBe('orbit')
+      })
     })
   })
 
@@ -177,15 +199,15 @@ describe('useKeyboardShortcuts', () => {
       expect(usePrimitiveStore.getState().primitiveType).toBe('halfspace')
     })
 
-    it('should set cylinder type with C key in primitive mode', () => {
+    it('should set cylinder type with Y key in primitive mode', () => {
       renderHook(() => useKeyboardShortcuts())
 
-      act(() => fireKeyDown('c'))
+      act(() => fireKeyDown('y'))
 
       expect(usePrimitiveStore.getState().primitiveType).toBe('cylinder')
     })
 
-    it('should not set primitive type with O/H/C outside primitive mode', () => {
+    it('should not set primitive type with O/H/Y outside primitive mode', () => {
       useProjectStore.setState({ mode: 'orbit' })
       renderHook(() => useKeyboardShortcuts())
 
@@ -195,8 +217,17 @@ describe('useKeyboardShortcuts', () => {
       act(() => fireKeyDown('h'))
       expect(usePrimitiveStore.getState().primitiveType).toBe('box')
 
-      act(() => fireKeyDown('c'))
+      act(() => fireKeyDown('y'))
       expect(usePrimitiveStore.getState().primitiveType).toBe('box')
+    })
+
+    it('should switch to click_pocket mode with C key even in primitive mode', () => {
+      renderHook(() => useKeyboardShortcuts())
+
+      act(() => fireKeyDown('c'))
+
+      // C is now a global shortcut for click_pocket, not cylinder
+      expect(useProjectStore.getState().mode).toBe('click_pocket')
     })
   })
 

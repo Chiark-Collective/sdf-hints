@@ -30,6 +30,13 @@ class Settings(BaseSettings):
     octree_max_depth: int = 12
     default_normal_k: int = 16
 
+    # Pocket detection settings
+    pocket_voxel_target: int = 256  # Target voxels along longest axis
+    pocket_min_voxel_size: float = 0.001  # Minimum voxel size in world units
+    pocket_max_voxels_per_axis: int = 512  # Hard limit to prevent OOM
+    pocket_occupancy_dilation: int = 1  # Voxels to dilate around points
+    pocket_min_volume_voxels: int = 8  # Minimum pocket size to report
+
     # CORS settings
     cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
 

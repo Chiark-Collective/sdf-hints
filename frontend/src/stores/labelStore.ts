@@ -11,6 +11,9 @@ export type ConstraintType =
   | 'brush_stroke'
   | 'seed_propagation'
   | 'ml_import'
+  | 'ray_carve'
+  | 'pocket'
+  | 'slice_selection'
 
 export type SignConvention = 'solid' | 'empty' | 'surface'
 
@@ -71,6 +74,37 @@ export interface MLImportConstraint extends BaseConstraint {
   confidences: number[]
 }
 
+export interface RayInfo {
+  origin: [number, number, number]
+  direction: [number, number, number]
+  hitDistance: number
+  surfaceNormal?: [number, number, number]
+}
+
+export interface RayCarveConstraint extends BaseConstraint {
+  type: 'ray_carve'
+  rays: RayInfo[]
+  emptyBandWidth: number
+  surfaceBandWidth: number
+}
+
+export interface PocketConstraint extends BaseConstraint {
+  type: 'pocket'
+  pocketId: number
+  voxelCount: number
+  centroid: [number, number, number]
+  boundsLow: [number, number, number]
+  boundsHigh: [number, number, number]
+  volumeEstimate: number
+}
+
+export interface SliceSelectionConstraint extends BaseConstraint {
+  type: 'slice_selection'
+  pointIndices: number[]
+  slicePlane: 'xy' | 'xz' | 'yz'
+  slicePosition: number
+}
+
 export type Constraint =
   | BoxConstraint
   | SphereConstraint
@@ -79,6 +113,9 @@ export type Constraint =
   | BrushStrokeConstraint
   | SeedPropagationConstraint
   | MLImportConstraint
+  | RayCarveConstraint
+  | PocketConstraint
+  | SliceSelectionConstraint
 
 interface LabelAction {
   id: string

@@ -11,6 +11,8 @@ import { useLabelStore, type Constraint } from '../../stores/labelStore'
 import { useSliceStore } from '../../stores/sliceStore'
 import { useBrushStore } from '../../stores/brushStore'
 import { useSeedStore } from '../../stores/seedStore'
+import { useRayScribbleStore } from '../../stores/rayScribbleStore'
+import { usePocketStore } from '../../stores/pocketStore'
 import { useConstraintSync } from '../../hooks/useConstraintSync'
 import { toast } from '../../stores/toastStore'
 import { LoadingButton } from './Spinner'
@@ -19,6 +21,8 @@ import { SliceMode } from '../modes/SliceMode'
 import { BrushMode } from '../modes/BrushMode'
 import { SeedMode } from '../modes/SeedMode'
 import { MLImportMode } from '../modes/MLImportMode'
+import { RayScribbleMode } from '../modes/RayScribbleMode'
+import { ClickPocketMode } from '../modes/ClickPocketMode'
 import { generateSamples, exportParquet } from '../../services/api'
 
 const labelOptions: { value: LabelType; label: string; description: string; color: string }[] = [
@@ -43,11 +47,38 @@ const labelOptions: { value: LabelType; label: string; description: string; colo
 ]
 
 // Wrapper for SliceMode with store integration
-function SliceModePanel() {
+function SliceModePanel({ projectId }: { projectId: string }) {
+  const activeLabel = useProjectStore((s) => s.activeLabel)
+  const slicePlane = useProjectStore((s) => s.slicePlane)
+  const slicePosition = useProjectStore((s) => s.slicePosition)
+
   const tool = useSliceStore((s) => s.tool)
   const setTool = useSliceStore((s) => s.setTool)
   const brushSize = useSliceStore((s) => s.brushSize)
   const setBrushSize = useSliceStore((s) => s.setBrushSize)
+  const selectedPointIndices = useSliceStore((s) => s.selectedPointIndices)
+  const clearSelectedPoints = useSliceStore((s) => s.clearSelectedPoints)
+
+  const addConstraint = useLabelStore((s) => s.addConstraint)
+
+  const handleCreateConstraint = () => {
+    if (selectedPointIndices.size === 0) return
+
+    const constraint: import('../../stores/labelStore').SliceSelectionConstraint = {
+      id: crypto.randomUUID(),
+      type: 'slice_selection',
+      sign: activeLabel,
+      weight: 1.0,
+      createdAt: Date.now(),
+      pointIndices: Array.from(selectedPointIndices),
+      slicePlane,
+      slicePosition,
+    }
+
+    addConstraint(projectId, constraint)
+    clearSelectedPoints()
+    toast.success('Constraint created', `${selectedPointIndices.size} points marked as ${activeLabel}`)
+  }
 
   return (
     <div className="border-b border-gray-800">
@@ -56,6 +87,8 @@ function SliceModePanel() {
         setTool={setTool}
         brushSize={brushSize}
         setBrushSize={setBrushSize}
+        selectedPointCount={selectedPointIndices.size}
+        onCreateConstraint={handleCreateConstraint}
       />
     </div>
   )
@@ -98,6 +131,120 @@ function MLImportModePanel({ projectId }: { projectId: string }) {
   return (
     <div className="border-b border-gray-800">
       <MLImportMode projectId={projectId} />
+    </div>
+  )
+}
+
+// Wrapper for RayScribbleMode with store integration
+function RayScribbleModePanel() {
+  const emptyBandWidth = useRayScribbleStore((s) => s.emptyBandWidth)
+  const setEmptyBandWidth = useRayScribbleStore((s) => s.setEmptyBandWidth)
+  const surfaceBandWidth = useRayScribbleStore((s) => s.surfaceBandWidth)
+  const setSurfaceBandWidth = useRayScribbleStore((s) => s.setSurfaceBandWidth)
+  const isScribbling = useRayScribbleStore((s) => s.isScribbling)
+  const strokes = useRayScribbleStore((s) => s.strokes)
+  const clearStrokes = useRayScribbleStore((s) => s.clearStrokes)
+
+  return (
+    <div className="border-b border-gray-800">
+      <RayScribbleMode
+        emptyBandWidth={emptyBandWidth}
+        setEmptyBandWidth={setEmptyBandWidth}
+        surfaceBandWidth={surfaceBandWidth}
+        setSurfaceBandWidth={setSurfaceBandWidth}
+        isScribbling={isScribbling}
+        strokeCount={strokes.length}
+        onClearStrokes={clearStrokes}
+      />
+    </div>
+  )
+}
+
+// Wrapper for ClickPocketMode with store integration
+function ClickPocketModePanel({ projectId }: { projectId: string }) {
+  const analysis = usePocketStore((s) => s.analysis)
+  const isAnalyzing = usePocketStore((s) => s.isAnalyzing)
+  const selectedPocketId = usePocketStore((s) => s.selectedPocketId)
+  const setSelectedPocketId = usePocketStore((s) => s.setSelectedPocketId)
+  const togglePocket = usePocketStore((s) => s.togglePocket)
+  const isPocketSolid = usePocketStore((s) => s.isPocketSolid)
+  const setIsAnalyzing = usePocketStore((s) => s.setIsAnalyzing)
+  const setAnalysis = usePocketStore((s) => s.setAnalysis)
+  const setAnalyzeError = usePocketStore((s) => s.setAnalyzeError)
+
+  // Transform pockets with local toggle state
+  const pockets = (analysis?.pockets ?? []).map((p) => ({
+    pocketId: p.pocketId,
+    voxelCount: p.voxelCount,
+    centroid: p.centroid,
+    boundsLow: p.boundsLow,
+    boundsHigh: p.boundsHigh,
+    volumeEstimate: p.volumeEstimate,
+    isToggledSolid: isPocketSolid(p.pocketId),
+  }))
+
+  const handleAnalyze = async () => {
+    setIsAnalyzing(true)
+    setAnalyzeError(null)
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/v1/projects/${projectId}/pockets/analyze`,
+        { method: 'POST' }
+      )
+      if (!response.ok) {
+        throw new Error(`Analysis failed: ${response.statusText}`)
+      }
+      const data = await response.json()
+      setAnalysis({
+        gridMetadata: {
+          resolution: data.grid_metadata.resolution,
+          voxelSize: data.grid_metadata.voxel_size,
+          boundsLow: data.grid_metadata.bounds_low,
+          boundsHigh: data.grid_metadata.bounds_high,
+          occupiedCount: data.grid_metadata.occupied_count,
+          emptyCount: data.grid_metadata.empty_count,
+          outsideCount: data.grid_metadata.outside_count,
+          pocketCount: data.grid_metadata.pocket_count,
+        },
+        pockets: data.pockets.map((p: {
+          pocket_id: number
+          voxel_count: number
+          centroid: [number, number, number]
+          bounds_low: [number, number, number]
+          bounds_high: [number, number, number]
+          volume_estimate: number
+          is_toggled_solid: boolean
+        }) => ({
+          pocketId: p.pocket_id,
+          voxelCount: p.voxel_count,
+          centroid: p.centroid,
+          boundsLow: p.bounds_low,
+          boundsHigh: p.bounds_high,
+          volumeEstimate: p.volume_estimate,
+          isToggledSolid: p.is_toggled_solid,
+        })),
+        computedAt: data.computed_at,
+      })
+      toast.success('Pocket analysis complete', `Found ${data.pockets.length} pockets`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setAnalyzeError(message)
+      toast.error('Pocket analysis failed', message)
+    } finally {
+      setIsAnalyzing(false)
+    }
+  }
+
+  return (
+    <div className="border-b border-gray-800">
+      <ClickPocketMode
+        pockets={pockets}
+        selectedPocketId={selectedPocketId}
+        isAnalyzing={isAnalyzing}
+        onAnalyze={handleAnalyze}
+        onTogglePocket={togglePocket}
+        onSelectPocket={setSelectedPocketId}
+      />
     </div>
   )
 }
@@ -213,14 +360,22 @@ export function LabelPanel() {
       </div>
 
       {/* Mode-specific settings */}
+      {mode === 'ray_scribble' && (
+        <RayScribbleModePanel />
+      )}
+
+      {mode === 'click_pocket' && currentProjectId && (
+        <ClickPocketModePanel projectId={currentProjectId} />
+      )}
+
       {mode === 'primitive' && (
         <div className="border-b border-gray-800">
           <PrimitiveMode />
         </div>
       )}
 
-      {mode === 'slice' && (
-        <SliceModePanel />
+      {mode === 'slice' && currentProjectId && (
+        <SliceModePanel projectId={currentProjectId} />
       )}
 
       {mode === 'brush' && (
@@ -320,6 +475,9 @@ function formatConstraintType(type: string): string {
     brush_stroke: 'Brush Strokes',
     seed_propagation: 'Propagated Seeds',
     ml_import: 'ML Imports',
+    ray_carve: 'Ray Carves',
+    pocket: 'Pockets',
+    slice_selection: 'Slice Selections',
   }
   return labels[type] || type
 }

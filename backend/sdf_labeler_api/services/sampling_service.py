@@ -12,8 +12,11 @@ from sdf_labeler_api.models.constraints import (
     BrushStrokeConstraint,
     ConstraintSet,
     HalfspaceConstraint,
+    PocketConstraint,
+    RayCarveConstraint,
     SeedPropagationConstraint,
     SignConvention,
+    SliceSelectionConstraint,
     SphereConstraint,
 )
 from sdf_labeler_api.models.project import Project
@@ -175,6 +178,14 @@ class SamplingService:
                 count += len(c.propagated_indices)
             elif isinstance(c, (BoxConstraint, SphereConstraint, HalfspaceConstraint)):
                 count += samples_per_primitive
+            elif isinstance(c, RayCarveConstraint):
+                # Each ray generates samples_per_primitive samples
+                count += len(c.rays) * samples_per_primitive
+            elif isinstance(c, PocketConstraint):
+                # Estimate based on voxel count
+                count += min(c.voxel_count, samples_per_primitive * 10)
+            elif isinstance(c, SliceSelectionConstraint):
+                count += len(c.point_indices)
         return count
 
     def _generate_from_constraints(
@@ -190,6 +201,7 @@ class SamplingService:
         samples = []
 
         n_samples = request.samples_per_primitive
+        project_id = project.id
 
         for constraint in constraints.constraints:
             if isinstance(constraint, BoxConstraint):
@@ -215,6 +227,18 @@ class SamplingService:
             elif isinstance(constraint, SeedPropagationConstraint):
                 samples.extend(
                     self._sample_propagated(constraint, xyz, normals)
+                )
+            elif isinstance(constraint, RayCarveConstraint):
+                samples.extend(
+                    self._sample_ray_carve(constraint, rng, n_samples)
+                )
+            elif isinstance(constraint, PocketConstraint):
+                samples.extend(
+                    self._sample_pocket(constraint, project_id, rng, n_samples)
+                )
+            elif isinstance(constraint, SliceSelectionConstraint):
+                samples.extend(
+                    self._sample_slice_selection(constraint, xyz, normals)
                 )
 
         return samples
@@ -441,6 +465,183 @@ class SamplingService:
                     nz=float(normal[2]),
                     weight=constraint.weight * confidence,
                     source=f"propagated_{constraint.sign.value}",
+                    is_surface=constraint.sign == SignConvention.SURFACE,
+                    is_free=constraint.sign == SignConvention.EMPTY,
+                )
+            )
+
+        return samples
+
+    def _sample_ray_carve(
+        self,
+        constraint: RayCarveConstraint,
+        rng: np.random.Generator,
+        n_samples_per_ray: int,
+    ) -> list[TrainingSample]:
+        """Generate samples from ray-carve constraint.
+
+        For each ray:
+        1. Sample EMPTY points uniformly along ray from origin to (hit - empty_band)
+        2. Sample SURFACE points in band around hit point
+        """
+        samples = []
+
+        for ray in constraint.rays:
+            origin = np.array(ray.origin)
+            direction = np.array(ray.direction)
+            direction = direction / np.linalg.norm(direction)
+            hit_dist = ray.hit_distance
+
+            # EMPTY samples along ray (before hit)
+            empty_end = hit_dist - constraint.empty_band_width
+            n_empty = n_samples_per_ray // 2
+
+            if empty_end > 0:
+                for _ in range(n_empty):
+                    t = rng.uniform(0, empty_end)
+                    point = origin + t * direction
+
+                    samples.append(
+                        TrainingSample(
+                            x=float(point[0]),
+                            y=float(point[1]),
+                            z=float(point[2]),
+                            phi=constraint.empty_band_width,  # Positive = outside
+                            nx=float(direction[0]),
+                            ny=float(direction[1]),
+                            nz=float(direction[2]),
+                            weight=constraint.weight,
+                            source="ray_carve_empty",
+                            is_surface=False,
+                            is_free=True,
+                        )
+                    )
+
+            # SURFACE samples near hit
+            n_surface = n_samples_per_ray - n_empty
+            for _ in range(n_surface):
+                t = rng.uniform(
+                    hit_dist - constraint.surface_band_width,
+                    hit_dist + constraint.surface_band_width,
+                )
+                point = origin + t * direction
+                phi = t - hit_dist  # Signed distance from surface
+
+                # Use surface normal if available, otherwise use ray direction
+                if ray.surface_normal:
+                    nx, ny, nz = ray.surface_normal
+                else:
+                    nx, ny, nz = -direction[0], -direction[1], -direction[2]
+
+                samples.append(
+                    TrainingSample(
+                        x=float(point[0]),
+                        y=float(point[1]),
+                        z=float(point[2]),
+                        phi=phi,
+                        nx=float(nx),
+                        ny=float(ny),
+                        nz=float(nz),
+                        weight=constraint.weight,
+                        source="ray_carve_surface",
+                        is_surface=abs(phi) < 0.01,
+                        is_free=False,
+                    )
+                )
+
+        return samples
+
+    def _sample_pocket(
+        self,
+        constraint: PocketConstraint,
+        project_id: str,
+        rng: np.random.Generator,
+        n_samples: int,
+    ) -> list[TrainingSample]:
+        """Generate samples from a pocket constraint.
+
+        Samples uniformly within the pocket voxel volume.
+        """
+        from sdf_labeler_api.config import settings
+        from sdf_labeler_api.services.pocket_service import PocketService
+
+        pocket_service = PocketService(settings)
+        voxels = pocket_service.get_pocket_voxels(project_id, constraint.pocket_id)
+
+        if voxels is None or len(voxels) == 0:
+            return []
+
+        samples = []
+
+        # Determine phi based on sign
+        if constraint.sign == SignConvention.SOLID:
+            phi = -0.05  # Negative = inside
+        else:
+            phi = 0.05  # Positive = outside
+
+        # Sample uniformly within pocket volume
+        n_to_sample = min(n_samples, len(voxels) * 10)
+        for _ in range(n_to_sample):
+            # Pick random voxel center
+            idx = rng.integers(0, len(voxels))
+            point = voxels[idx]
+
+            samples.append(
+                TrainingSample(
+                    x=float(point[0]),
+                    y=float(point[1]),
+                    z=float(point[2]),
+                    phi=phi,
+                    nx=0.0,
+                    ny=0.0,
+                    nz=0.0,
+                    weight=constraint.weight,
+                    source=f"pocket_{constraint.sign.value}",
+                    is_surface=False,
+                    is_free=constraint.sign == SignConvention.EMPTY,
+                )
+            )
+
+        return samples
+
+    def _sample_slice_selection(
+        self,
+        constraint: SliceSelectionConstraint,
+        xyz: np.ndarray,
+        normals: np.ndarray | None,
+    ) -> list[TrainingSample]:
+        """Generate samples from slice selection constraint.
+
+        One sample per selected point.
+        """
+        samples = []
+
+        for idx in constraint.point_indices:
+            if idx >= len(xyz):
+                continue
+
+            point = xyz[idx]
+            normal = normals[idx] if normals is not None else [0, 0, 1]
+
+            # Determine phi based on sign
+            if constraint.sign == SignConvention.SURFACE:
+                phi = 0.0
+            elif constraint.sign == SignConvention.SOLID:
+                phi = -0.01
+            else:  # EMPTY
+                phi = 0.01
+
+            samples.append(
+                TrainingSample(
+                    x=float(point[0]),
+                    y=float(point[1]),
+                    z=float(point[2]),
+                    phi=phi,
+                    nx=float(normal[0]),
+                    ny=float(normal[1]),
+                    nz=float(normal[2]),
+                    weight=constraint.weight,
+                    source=f"slice_{constraint.sign.value}",
                     is_surface=constraint.sign == SignConvention.SURFACE,
                     is_free=constraint.sign == SignConvention.EMPTY,
                 )

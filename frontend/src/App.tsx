@@ -13,6 +13,8 @@ import { PointCloudViewer } from './components/canvas/PointCloudViewer'
 import { SelectionVolume } from './components/canvas/SelectionVolume'
 import { PrimitivePlacer } from './components/canvas/PrimitivePlacer'
 import { BrushPainter } from './components/canvas/BrushPainter'
+import { RayScribblePainter } from './components/canvas/RayScribblePainter'
+import { PocketDetector } from './components/canvas/PocketDetector'
 import { SeedPlacer } from './components/canvas/SeedPlacer'
 import { SampleViewer } from './components/canvas/SampleViewer'
 import { useBrushStore } from './stores/brushStore'
@@ -62,6 +64,12 @@ function Scene() {
           depthAware={depthAware}
         />
       )}
+
+      {/* Ray scribble painter (when in ray_scribble mode) */}
+      {projectId && <RayScribblePainter projectId={projectId} />}
+
+      {/* Pocket detector (when in click_pocket mode) */}
+      {projectId && <PocketDetector projectId={projectId} />}
 
       {/* Seed placer (when in seed mode) */}
       {projectId && (

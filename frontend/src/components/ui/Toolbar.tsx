@@ -11,17 +11,35 @@ import {
   UploadIcon,
   ResetIcon,
   CounterClockwiseClockIcon,
+  Pencil2Icon,
+  Component1Icon,
+  DotsHorizontalIcon,
+  ChevronDownIcon,
 } from '@radix-ui/react-icons'
 import * as ToggleGroup from '@radix-ui/react-toggle-group'
 import * as Tooltip from '@radix-ui/react-tooltip'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 
-import { useProjectStore, type InteractionMode } from '../../stores/projectStore'
+import { useProjectStore, type InteractionMode, SECONDARY_MODES } from '../../stores/projectStore'
 import { useLabelStore } from '../../stores/labelStore'
 
-const modes: { value: InteractionMode; icon: typeof CursorArrowIcon; label: string; shortcut: string; ariaLabel: string }[] = [
+interface ModeConfig {
+  value: InteractionMode
+  icon: typeof CursorArrowIcon
+  label: string
+  shortcut: string
+  ariaLabel: string
+}
+
+const primaryModes: ModeConfig[] = [
   { value: 'orbit', icon: CursorArrowIcon, label: 'Navigate', shortcut: 'Esc', ariaLabel: 'Orbit' },
-  { value: 'primitive', icon: BoxIcon, label: 'Place Primitives', shortcut: 'P', ariaLabel: 'Primitive' },
+  { value: 'ray_scribble', icon: Pencil2Icon, label: 'Ray Scribble', shortcut: 'R', ariaLabel: 'Ray Scribble' },
+  { value: 'click_pocket', icon: Component1Icon, label: 'Click Pocket', shortcut: 'C', ariaLabel: 'Click Pocket' },
   { value: 'slice', icon: ShadowIcon, label: 'Slice Paint', shortcut: 'S', ariaLabel: 'Slice' },
+]
+
+const secondaryModes: ModeConfig[] = [
+  { value: 'primitive', icon: BoxIcon, label: 'Place Primitives', shortcut: 'P', ariaLabel: 'Primitive' },
   { value: 'brush', icon: CircleIcon, label: '3D Brush', shortcut: 'B', ariaLabel: 'Brush' },
   { value: 'seed', icon: MixIcon, label: 'Seed & Propagate', shortcut: 'G', ariaLabel: 'Seed' },
   { value: 'import', icon: UploadIcon, label: 'Import ML', shortcut: 'I', ariaLabel: 'Import' },
@@ -60,20 +78,20 @@ export function Toolbar() {
 
         <div className="w-px h-6 bg-gray-700" />
 
-        {/* Mode selection */}
+        {/* Primary mode selection */}
         <ToggleGroup.Root
           type="single"
           value={mode}
           onValueChange={(value) => value && setMode(value as InteractionMode)}
           className="flex gap-1"
         >
-          {modes.map(({ value, icon: Icon, label, shortcut, ariaLabel }) => (
+          {primaryModes.map(({ value, icon: Icon, label, shortcut, ariaLabel }) => (
             <Tooltip.Root key={value}>
               <Tooltip.Trigger asChild>
                 <ToggleGroup.Item
                   value={value}
                   aria-label={ariaLabel}
-                  data-testid={`mode-${ariaLabel.toLowerCase()}`}
+                  data-testid={`mode-${ariaLabel.toLowerCase().replace(' ', '-')}`}
                   className={`
                     p-2 rounded transition-colors
                     ${mode === value
@@ -100,6 +118,63 @@ export function Toolbar() {
             </Tooltip.Root>
           ))}
         </ToggleGroup.Root>
+
+        {/* Secondary modes dropdown */}
+        <DropdownMenu.Root>
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
+              <DropdownMenu.Trigger asChild>
+                <button
+                  data-testid="advanced-tools-dropdown"
+                  className={`
+                    p-2 rounded transition-colors flex items-center gap-1
+                    ${SECONDARY_MODES.includes(mode)
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                    }
+                  `}
+                >
+                  <DotsHorizontalIcon className="w-5 h-5" />
+                  <ChevronDownIcon className="w-3 h-3" />
+                </button>
+              </DropdownMenu.Trigger>
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content
+                className="px-3 py-2 text-sm bg-gray-800 rounded shadow-lg border border-gray-700"
+                sideOffset={5}
+              >
+                Advanced Tools
+                <Tooltip.Arrow className="fill-gray-800" />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content
+              className="min-w-[180px] bg-gray-800 rounded-md shadow-lg border border-gray-700 p-1"
+              sideOffset={5}
+            >
+              {secondaryModes.map(({ value, icon: Icon, label, shortcut, ariaLabel }) => (
+                <DropdownMenu.Item
+                  key={value}
+                  data-testid={`mode-${ariaLabel.toLowerCase()}`}
+                  className={`
+                    flex items-center gap-3 px-3 py-2 rounded cursor-pointer outline-none
+                    ${mode === value
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                    }
+                  `}
+                  onSelect={() => setMode(value)}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="flex-1">{label}</span>
+                  <kbd className="px-1.5 py-0.5 text-xs bg-gray-900 rounded">{shortcut}</kbd>
+                </DropdownMenu.Item>
+              ))}
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
 
         <div className="w-px h-6 bg-gray-700" />
 
