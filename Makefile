@@ -2,7 +2,8 @@
 # ABOUTME: Provides commands for development, testing, and running the application
 
 .PHONY: help install install-backend install-frontend dev dev-backend dev-frontend \
-        test test-backend test-frontend test-e2e test-e2e-headed lint format clean
+        dev-down dev-restart test test-backend test-frontend test-e2e test-e2e-headed \
+        lint format clean
 
 SHELL := /bin/bash
 
@@ -24,6 +25,8 @@ help:
 	@echo "  make dev              Run both backend and frontend"
 	@echo "  make dev-backend      Run backend only (port 8001)"
 	@echo "  make dev-frontend     Run frontend only (port 5173)"
+	@echo "  make dev-down         Stop all dev servers"
+	@echo "  make dev-restart      Stop and restart with clean slate"
 	@echo ""
 	@echo "$(GREEN)Testing:$(RESET)"
 	@echo "  make test             Run all unit tests"
@@ -68,6 +71,19 @@ dev-backend:
 
 dev-frontend:
 	cd frontend && npm run dev
+
+dev-down:
+	@echo "$(CYAN)Stopping dev servers...$(RESET)"
+	@-pkill -f "uvicorn sdf_labeler_api.app:app.*--port 8001" 2>/dev/null || true
+	@-pkill -f "vite.*sdf-labeler" 2>/dev/null || true
+	@-pkill -f "node.*vite.*frontend" 2>/dev/null || true
+	@sleep 1
+	@echo "$(GREEN)Dev servers stopped$(RESET)"
+
+dev-restart: dev-down
+	@echo "$(CYAN)Restarting with clean slate...$(RESET)"
+	@sleep 1
+	@$(MAKE) dev
 
 # =============================================================================
 # Testing

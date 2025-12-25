@@ -12,6 +12,7 @@ import { useSliceStore } from '../../stores/sliceStore'
 import { useBrushStore } from '../../stores/brushStore'
 import { useSeedStore } from '../../stores/seedStore'
 import { useRayScribbleStore } from '../../stores/rayScribbleStore'
+import { useLocalSpacing } from '../../hooks/useLocalSpacing'
 import { usePocketStore } from '../../stores/pocketStore'
 import { useConstraintSync } from '../../hooks/useConstraintSync'
 import { toast } from '../../stores/toastStore'
@@ -137,15 +138,24 @@ function MLImportModePanel({ projectId }: { projectId: string }) {
 
 // Wrapper for RayScribbleMode with store integration
 function RayScribbleModePanel() {
+  const pointCloudPositions = useProjectStore((s) => s.pointCloudPositions)
+
   const emptyBandWidth = useRayScribbleStore((s) => s.emptyBandWidth)
   const setEmptyBandWidth = useRayScribbleStore((s) => s.setEmptyBandWidth)
   const surfaceBandWidth = useRayScribbleStore((s) => s.surfaceBandWidth)
   const setSurfaceBandWidth = useRayScribbleStore((s) => s.setSurfaceBandWidth)
   const backBufferWidth = useRayScribbleStore((s) => s.backBufferWidth)
   const setBackBufferWidth = useRayScribbleStore((s) => s.setBackBufferWidth)
+  const useAdaptiveBackBuffer = useRayScribbleStore((s) => s.useAdaptiveBackBuffer)
+  const setUseAdaptiveBackBuffer = useRayScribbleStore((s) => s.setUseAdaptiveBackBuffer)
+  const backBufferCoefficient = useRayScribbleStore((s) => s.backBufferCoefficient)
+  const setBackBufferCoefficient = useRayScribbleStore((s) => s.setBackBufferCoefficient)
   const isScribbling = useRayScribbleStore((s) => s.isScribbling)
   const strokes = useRayScribbleStore((s) => s.strokes)
   const clearStrokes = useRayScribbleStore((s) => s.clearStrokes)
+
+  // Local spacing computation for adaptive back buffer
+  const { isReady, isComputing, progress, globalMean } = useLocalSpacing(pointCloudPositions)
 
   return (
     <RayScribbleMode
@@ -155,6 +165,11 @@ function RayScribbleModePanel() {
       setSurfaceBandWidth={setSurfaceBandWidth}
       backBufferWidth={backBufferWidth}
       setBackBufferWidth={setBackBufferWidth}
+      useAdaptiveBackBuffer={useAdaptiveBackBuffer}
+      setUseAdaptiveBackBuffer={setUseAdaptiveBackBuffer}
+      backBufferCoefficient={backBufferCoefficient}
+      setBackBufferCoefficient={setBackBufferCoefficient}
+      localSpacingStatus={{ isReady, isComputing, progress, globalMean }}
       isScribbling={isScribbling}
       strokeCount={strokes.length}
       onClearStrokes={clearStrokes}

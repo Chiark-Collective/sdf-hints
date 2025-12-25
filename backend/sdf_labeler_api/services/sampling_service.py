@@ -1,11 +1,14 @@
 # ABOUTME: Training sample generation service
 # ABOUTME: Converts constraints to survi-compatible training data
 
+import logging
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 from sdf_labeler_api.models.constraints import (
     BoxConstraint,
@@ -203,7 +206,9 @@ class SamplingService:
         n_samples = request.samples_per_primitive
         project_id = project.id
 
+        print(f"[DEBUG] Processing {len(constraints.constraints)} constraints", flush=True)
         for constraint in constraints.constraints:
+            print(f"[DEBUG] Constraint type: {type(constraint).__name__}", flush=True)
             if isinstance(constraint, BoxConstraint):
                 samples.extend(
                     self._sample_box(constraint, rng, project.config.near_band, n_samples)
@@ -484,6 +489,7 @@ class SamplingService:
         1. Sample EMPTY points uniformly along ray from origin to (hit - empty_band)
         2. Sample SURFACE points in band around hit point
         """
+        print(f"[DEBUG] _sample_ray_carve called with {len(constraint.rays)} rays, coeff={constraint.back_buffer_coefficient}", flush=True)
         samples = []
 
         for ray in constraint.rays:
@@ -492,8 +498,18 @@ class SamplingService:
             direction = direction / np.linalg.norm(direction)
             hit_dist = ray.hit_distance
 
-            # EMPTY samples along ray (before hit)
-            empty_end = hit_dist - constraint.empty_band_width
+            # Compute the "impenetrable buffer" zone size
+            # This is the zone before the hit where we don't sample empty points
+            # Higher coefficient = larger buffer = more protection from bleed-through
+            if ray.local_spacing is not None:
+                buffer_zone = ray.local_spacing * constraint.back_buffer_coefficient
+                print(f"[DEBUG] Impenetrable buffer: local_spacing={ray.local_spacing:.4f} × coeff={constraint.back_buffer_coefficient} = {buffer_zone:.4f}", flush=True)
+            else:
+                buffer_zone = constraint.back_buffer_width
+                print(f"[DEBUG] Fixed buffer: {buffer_zone:.4f} (no local_spacing)", flush=True)
+
+            # EMPTY samples along ray (before hit, stopping at buffer zone)
+            empty_end = hit_dist - buffer_zone
             n_empty = n_samples_per_ray // 2
 
             if empty_end > 0:
@@ -506,7 +522,7 @@ class SamplingService:
                             x=float(point[0]),
                             y=float(point[1]),
                             z=float(point[2]),
-                            phi=constraint.empty_band_width,  # Positive = outside
+                            phi=buffer_zone,  # Positive = outside, at least buffer_zone away
                             nx=float(direction[0]),
                             ny=float(direction[1]),
                             nz=float(direction[2]),
@@ -517,16 +533,15 @@ class SamplingService:
                         )
                     )
 
-            # SURFACE samples near hit (from -surface_band to +back_buffer)
-            # back_buffer_width defaults to 0, preventing bleed-through
+            # SURFACE samples near hit (from -surface_band to hit, NEVER past hit!)
             n_surface = n_samples_per_ray - n_empty
             for _ in range(n_surface):
                 t = rng.uniform(
                     hit_dist - constraint.surface_band_width,
-                    hit_dist + constraint.back_buffer_width,
+                    hit_dist,  # Never sample past the hit point
                 )
                 point = origin + t * direction
-                phi = t - hit_dist  # Signed distance from surface
+                phi = t - hit_dist  # Signed distance from surface (always <= 0 now)
 
                 # Use surface normal if available, otherwise use ray direction
                 if ray.surface_normal:

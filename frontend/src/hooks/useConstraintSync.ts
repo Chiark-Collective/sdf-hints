@@ -6,6 +6,15 @@ import { useLabelStore, type Constraint } from '../stores/labelStore'
 
 const API_BASE = '/v1'
 
+interface RayInfoRequest {
+  origin: [number, number, number]
+  direction: [number, number, number]
+  hit_distance: number
+  surface_normal?: [number, number, number]
+  hit_point_index?: number
+  local_spacing?: number
+}
+
 interface ConstraintCreateRequest {
   type: string
   name?: string
@@ -19,6 +28,12 @@ interface ConstraintCreateRequest {
   point?: [number, number, number]
   normal?: [number, number, number]
   stroke_points?: [number, number, number][]
+  // Ray carve fields
+  rays?: RayInfoRequest[]
+  empty_band_width?: number
+  surface_band_width?: number
+  back_buffer_width?: number
+  back_buffer_coefficient?: number
 }
 
 async function createConstraint(
@@ -87,6 +102,19 @@ export function useConstraintSync(projectId: string | null) {
       } else if (constraint.type === 'brush_stroke') {
         request.stroke_points = constraint.strokePoints
         request.radius = constraint.radius
+      } else if (constraint.type === 'ray_carve') {
+        request.rays = constraint.rays.map((r) => ({
+          origin: r.origin,
+          direction: r.direction,
+          hit_distance: r.hitDistance,
+          surface_normal: r.surfaceNormal,
+          hit_point_index: r.hitPointIndex,
+          local_spacing: r.localSpacing,
+        }))
+        request.empty_band_width = constraint.emptyBandWidth
+        request.surface_band_width = constraint.surfaceBandWidth
+        request.back_buffer_width = constraint.backBufferWidth
+        request.back_buffer_coefficient = constraint.backBufferCoefficient
       }
 
       return createConstraint(projectId, request)

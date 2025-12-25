@@ -123,6 +123,12 @@ class RayInfo(BaseModel):
     surface_normal: tuple[float, float, float] | None = Field(
         default=None, description="Surface normal at hit point if available"
     )
+    hit_point_index: int | None = Field(
+        default=None, description="Index of hit point in consolidated positions"
+    )
+    local_spacing: float | None = Field(
+        default=None, description="Local point spacing at hit point (k-NN mean distance)"
+    )
 
 
 class RayCarveConstraint(BaseConstraint):
@@ -131,6 +137,10 @@ class RayCarveConstraint(BaseConstraint):
     Each ray defines:
     - EMPTY samples along ray from origin to (hit_distance - empty_band)
     - SURFACE samples near hit_distance (from -surface_band to +back_buffer)
+
+    Back buffer is determined by:
+    - If ray.local_spacing is set: back_buffer = local_spacing * back_buffer_coefficient
+    - Otherwise: back_buffer = back_buffer_width (fixed fallback)
     """
 
     type: Literal["ray_carve"] = "ray_carve"
@@ -142,7 +152,10 @@ class RayCarveConstraint(BaseConstraint):
         default=0.02, gt=0, description="Distance before hit for SURFACE samples"
     )
     back_buffer_width: float = Field(
-        default=0.0, ge=0, description="Distance past hit to sample (0 = no bleed-through)"
+        default=0.0, ge=0, description="Fixed distance past hit (fallback when no local_spacing)"
+    )
+    back_buffer_coefficient: float = Field(
+        default=1.0, ge=0, description="Multiplier for per-ray local_spacing"
     )
 
 

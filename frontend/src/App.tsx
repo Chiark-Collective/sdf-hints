@@ -44,6 +44,16 @@ function Scene() {
       <ambientLight intensity={0.5} />
       <directionalLight position={[10, 10, 5]} intensity={1} />
 
+      {/* 3D grid reference - 10m cube with 1m cells */}
+      <group>
+        {/* XZ plane (floor) */}
+        <gridHelper args={[10, 10, '#444444', '#333333']} />
+        {/* XY plane (back wall) */}
+        <gridHelper args={[10, 10, '#444444', '#333333']} rotation={[Math.PI / 2, 0, 0]} position={[0, 0, -5]} />
+        {/* YZ plane (side wall) */}
+        <gridHelper args={[10, 10, '#444444', '#333333']} rotation={[0, 0, Math.PI / 2]} position={[-5, 0, 0]} />
+      </group>
+
       {/* Point cloud viewer */}
       {projectId && (
         <Suspense fallback={null}>
@@ -151,6 +161,11 @@ export default function App() {
 
               {/* Primitive mode overlay UI */}
               <PrimitiveOverlay />
+
+              {/* Grid scale hint */}
+              <div className="absolute bottom-2 left-2 text-xs text-gray-500 pointer-events-none select-none">
+                Grid: 1m cells
+              </div>
 
               {/* Leva controls (debug panel) */}
               <Leva

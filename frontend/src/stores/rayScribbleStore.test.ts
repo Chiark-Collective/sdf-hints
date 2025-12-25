@@ -11,6 +11,8 @@ describe('rayScribbleStore', () => {
       emptyBandWidth: 0.1,
       surfaceBandWidth: 0.02,
       backBufferWidth: 0.0,
+      useAdaptiveBackBuffer: true,
+      backBufferCoefficient: 1.0,
       strokes: [],
       isScribbling: false,
       currentStrokeRays: [],
@@ -43,6 +45,27 @@ describe('rayScribbleStore', () => {
     it('should update back buffer width', () => {
       useRayScribbleStore.getState().setBackBufferWidth(0.01)
       expect(useRayScribbleStore.getState().backBufferWidth).toBe(0.01)
+    })
+
+    it('should initialize with adaptive back buffer enabled', () => {
+      expect(useRayScribbleStore.getState().useAdaptiveBackBuffer).toBe(true)
+    })
+
+    it('should toggle adaptive back buffer', () => {
+      useRayScribbleStore.getState().setUseAdaptiveBackBuffer(false)
+      expect(useRayScribbleStore.getState().useAdaptiveBackBuffer).toBe(false)
+
+      useRayScribbleStore.getState().setUseAdaptiveBackBuffer(true)
+      expect(useRayScribbleStore.getState().useAdaptiveBackBuffer).toBe(true)
+    })
+
+    it('should initialize with default back buffer coefficient of 1.0', () => {
+      expect(useRayScribbleStore.getState().backBufferCoefficient).toBe(1.0)
+    })
+
+    it('should update back buffer coefficient', () => {
+      useRayScribbleStore.getState().setBackBufferCoefficient(1.5)
+      expect(useRayScribbleStore.getState().backBufferCoefficient).toBe(1.5)
     })
   })
 
@@ -133,6 +156,35 @@ describe('rayScribbleStore', () => {
       expect(useRayScribbleStore.getState().currentStrokeRays[0].surfaceNormal).toEqual([
         0, 0, 1,
       ])
+    })
+
+    it('should preserve hitPointIndex if provided', () => {
+      useRayScribbleStore.getState().startStroke()
+
+      const ray: RayInfo = {
+        origin: [0, 0, 0],
+        direction: [1, 0, 0],
+        hitDistance: 1.5,
+        hitPointIndex: 42,
+      }
+      useRayScribbleStore.getState().addRayToStroke(ray)
+
+      expect(useRayScribbleStore.getState().currentStrokeRays[0].hitPointIndex).toBe(42)
+    })
+
+    it('should preserve localSpacing if provided', () => {
+      useRayScribbleStore.getState().startStroke()
+
+      const ray: RayInfo = {
+        origin: [0, 0, 0],
+        direction: [1, 0, 0],
+        hitDistance: 1.5,
+        hitPointIndex: 42,
+        localSpacing: 0.05,
+      }
+      useRayScribbleStore.getState().addRayToStroke(ray)
+
+      expect(useRayScribbleStore.getState().currentStrokeRays[0].localSpacing).toBe(0.05)
     })
   })
 

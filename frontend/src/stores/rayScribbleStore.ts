@@ -8,6 +8,8 @@ export interface RayInfo {
   direction: [number, number, number]
   hitDistance: number
   surfaceNormal?: [number, number, number]
+  hitPointIndex?: number    // Index into consolidated positions for spacing lookup
+  localSpacing?: number     // Local point spacing at hit point (k-NN mean distance)
 }
 
 export interface RayStroke {
@@ -21,6 +23,8 @@ interface RayScribbleState {
   emptyBandWidth: number
   surfaceBandWidth: number
   backBufferWidth: number  // Distance past hit to sample (0 = no bleed-through)
+  useAdaptiveBackBuffer: boolean  // Use local spacing instead of fixed width
+  backBufferCoefficient: number   // Multiplier for local spacing (0.5 to 2.0)
 
   // Stroke state
   strokes: RayStroke[]
@@ -31,6 +35,8 @@ interface RayScribbleState {
   setEmptyBandWidth: (width: number) => void
   setSurfaceBandWidth: (width: number) => void
   setBackBufferWidth: (width: number) => void
+  setUseAdaptiveBackBuffer: (use: boolean) => void
+  setBackBufferCoefficient: (coeff: number) => void
 
   startStroke: () => void
   addRayToStroke: (ray: RayInfo) => void
@@ -46,7 +52,9 @@ export const useRayScribbleStore = create<RayScribbleState>((set, get) => ({
   // Default settings
   emptyBandWidth: 0.1,
   surfaceBandWidth: 0.02,
-  backBufferWidth: 0.0,  // Default to 0: no bleed-through
+  backBufferWidth: 0.0,  // Distance past hit (fallback when adaptive is off)
+  useAdaptiveBackBuffer: true,  // Use local spacing by default
+  backBufferCoefficient: 1.0,   // 1.0x local spacing
 
   // Initial state
   strokes: [],
@@ -57,6 +65,8 @@ export const useRayScribbleStore = create<RayScribbleState>((set, get) => ({
   setEmptyBandWidth: (width) => set({ emptyBandWidth: width }),
   setSurfaceBandWidth: (width) => set({ surfaceBandWidth: width }),
   setBackBufferWidth: (width) => set({ backBufferWidth: width }),
+  setUseAdaptiveBackBuffer: (use) => set({ useAdaptiveBackBuffer: use }),
+  setBackBufferCoefficient: (coeff) => set({ backBufferCoefficient: coeff }),
 
   // Stroke actions
   startStroke: () => set({ isScribbling: true, currentStrokeRays: [] }),

@@ -2,7 +2,15 @@
 // ABOUTME: Controls empty band width and displays scribbling instructions
 
 import * as Slider from '@radix-ui/react-slider'
+import * as Switch from '@radix-ui/react-switch'
 import { HelpTooltip } from '../ui/HelpTooltip'
+
+export interface LocalSpacingStatus {
+  isReady: boolean
+  isComputing: boolean
+  progress: number
+  globalMean: number | null
+}
 
 export interface RayScribbleModeProps {
   emptyBandWidth: number
@@ -11,6 +19,11 @@ export interface RayScribbleModeProps {
   setSurfaceBandWidth: (width: number) => void
   backBufferWidth: number
   setBackBufferWidth: (width: number) => void
+  useAdaptiveBackBuffer: boolean
+  setUseAdaptiveBackBuffer: (use: boolean) => void
+  backBufferCoefficient: number
+  setBackBufferCoefficient: (coeff: number) => void
+  localSpacingStatus: LocalSpacingStatus
   isScribbling: boolean
   strokeCount: number
   onClearStrokes: () => void
@@ -23,6 +36,11 @@ export function RayScribbleMode({
   setSurfaceBandWidth,
   backBufferWidth,
   setBackBufferWidth,
+  useAdaptiveBackBuffer,
+  setUseAdaptiveBackBuffer,
+  backBufferCoefficient,
+  setBackBufferCoefficient,
+  localSpacingStatus,
   isScribbling,
   strokeCount,
   onClearStrokes,
@@ -88,31 +106,101 @@ export function RayScribbleMode({
         </Slider.Root>
       </div>
 
-      {/* Back buffer width slider */}
-      <div className="space-y-1">
-        <div className="flex items-center justify-between text-sm">
+      {/* Back buffer section */}
+      <div className="space-y-2">
+        {/* Adaptive toggle */}
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
-            <label className="text-gray-400">Back buffer</label>
-            <HelpTooltip content="How far past the surface to sample. 0 = no bleed-through (recommended for thin surfaces)" />
+            <label className="text-sm text-gray-400">Adaptive back buffer</label>
+            <HelpTooltip content="Use local point spacing to determine back buffer. Each point's 'thickness' is based on its neighbors' distances." />
           </div>
-          <span className="text-gray-300 tabular-nums">{backBufferWidth.toFixed(3)}</span>
+          <Switch.Root
+            checked={useAdaptiveBackBuffer}
+            onCheckedChange={setUseAdaptiveBackBuffer}
+            className="w-9 h-5 bg-gray-700 rounded-full relative data-[state=checked]:bg-purple-600 transition-colors"
+          >
+            <Switch.Thumb className="block w-4 h-4 bg-white rounded-full transition-transform translate-x-0.5 data-[state=checked]:translate-x-[18px]" />
+          </Switch.Root>
         </div>
-        <Slider.Root
-          className="relative flex items-center select-none touch-none w-full h-5"
-          value={[backBufferWidth]}
-          onValueChange={([v]) => setBackBufferWidth(v)}
-          min={0}
-          max={0.05}
-          step={0.001}
-        >
-          <Slider.Track className="bg-gray-700 relative grow rounded-full h-[3px]">
-            <Slider.Range className="absolute bg-purple-500 rounded-full h-full" />
-          </Slider.Track>
-          <Slider.Thumb
-            className="block w-4 h-4 bg-white rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
-            aria-label="Back buffer width"
-          />
-        </Slider.Root>
+
+        {/* Adaptive mode: coefficient slider + status */}
+        {useAdaptiveBackBuffer && (
+          <>
+            {/* Coefficient slider */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-1">
+                  <label className="text-gray-400">Buffer Zone</label>
+                  <HelpTooltip content="Size of impenetrable zone around surface. Higher = more protection from bleed-through. Measured in multiples of local point spacing." />
+                </div>
+                <span className="text-gray-300 tabular-nums">{backBufferCoefficient.toFixed(1)}×</span>
+              </div>
+              <Slider.Root
+                className="relative flex items-center select-none touch-none w-full h-5"
+                value={[backBufferCoefficient]}
+                onValueChange={([v]) => setBackBufferCoefficient(v)}
+                min={0.5}
+                max={200}
+                step={1}
+              >
+                <Slider.Track className="bg-gray-700 relative grow rounded-full h-[3px]">
+                  <Slider.Range className="absolute bg-purple-500 rounded-full h-full" />
+                </Slider.Track>
+                <Slider.Thumb
+                  className="block w-4 h-4 bg-white rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  aria-label="Back buffer coefficient"
+                />
+              </Slider.Root>
+            </div>
+
+            {/* Local spacing status */}
+            <div className="text-xs text-gray-500">
+              {localSpacingStatus.isComputing ? (
+                <span className="text-yellow-500">
+                  Computing spacing... {Math.round(localSpacingStatus.progress * 100)}%
+                </span>
+              ) : localSpacingStatus.isReady && localSpacingStatus.globalMean != null ? (
+                <span className="text-green-500">
+                  Ready — buffer: {(localSpacingStatus.globalMean * backBufferCoefficient).toFixed(3)}m
+                  <span className="text-gray-500 ml-1">
+                    ({localSpacingStatus.globalMean.toFixed(4)} × {backBufferCoefficient})
+                  </span>
+                </span>
+              ) : (
+                <span>Waiting for point cloud...</span>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* Fixed mode: back buffer width slider */}
+        {!useAdaptiveBackBuffer && (
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-1">
+                <label className="text-gray-400">Back buffer</label>
+                <HelpTooltip content="Fixed distance past the surface to sample. 0 = no bleed-through (recommended for thin surfaces)" />
+              </div>
+              <span className="text-gray-300 tabular-nums">{backBufferWidth.toFixed(3)}</span>
+            </div>
+            <Slider.Root
+              className="relative flex items-center select-none touch-none w-full h-5"
+              value={[backBufferWidth]}
+              onValueChange={([v]) => setBackBufferWidth(v)}
+              min={0}
+              max={0.05}
+              step={0.001}
+            >
+              <Slider.Track className="bg-gray-700 relative grow rounded-full h-[3px]">
+                <Slider.Range className="absolute bg-purple-500 rounded-full h-full" />
+              </Slider.Track>
+              <Slider.Thumb
+                className="block w-4 h-4 bg-white rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                aria-label="Back buffer width"
+              />
+            </Slider.Root>
+          </div>
+        )}
       </div>
 
       {/* Status + Clear */}

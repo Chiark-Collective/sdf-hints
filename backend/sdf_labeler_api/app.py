@@ -216,6 +216,9 @@ async def get_pointcloud_metadata(project_id: str):
 @app.post("/v1/projects/{project_id}/constraints", response_model=Constraint)
 async def add_constraint(project_id: str, constraint: Constraint):
     """Add a constraint to the project."""
+    print(f"[DEBUG] add_constraint: type={constraint.type}", flush=True)
+    if hasattr(constraint, 'back_buffer_coefficient'):
+        print(f"[DEBUG] back_buffer_coefficient={constraint.back_buffer_coefficient}", flush=True)
     project = project_service.get(project_id)
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")

@@ -934,16 +934,16 @@ wheels = [
 
 [[package]]
 name = "surface-scenarios"
-version = "0.3.0"
+version = "0.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
     { name = "pandas" },
     { name = "shapely" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0f/56/89a5e2bf924749fd51d0926f9df259b0f7915b1f7a3b14d54f361d3e17d0/surface_scenarios-0.3.0.tar.gz", hash = "sha256:78139264dc7dee196f228ee9520134a1e41bdcbb4e773a774bbf3de8fc0ebc66", size = 27081 }
+sdist = { url = "https://files.pythonhosted.org/packages/03/f2/6c50b220ec75f98873268e3494391cb91a473763522ab0c740b6c9b631dc/surface_scenarios-0.3.1.tar.gz", hash = "sha256:023eb55642d0880818a8e07c07a9ff604389b4cd94ba7d5ff359342cd740dacf", size = 27083 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/50/6e/3d462b4e00b8a57d1ed1d7096708b1e7a7ddaeb5328989fd85ec45df58a6/surface_scenarios-0.3.0-py3-none-any.whl", hash = "sha256:cbf3797754f3538f186b757a4be27abddb73f08f5d85b68dee468fe68992270d", size = 35708 },
+    { url = "https://files.pythonhosted.org/packages/cf/69/48e13bc07668fc53efa3226d1b5269fa6cb02b89aa166ef347ae8b4c6c06/surface_scenarios-0.3.1-py3-none-any.whl", hash = "sha256:67ea2686eed565e7112bf385e5eb223c4e4b2591c6f7457cf40306f023e0689c", size = 35708 },
 ]
 
 [package.optional-dependencies]
@@ -953,14 +953,14 @@ mesh = [
 
 [[package]]
 name = "trenchfoot"
-version = "0.2.3"
+version = "0.2.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f1/8a/df3c3d964883f46360f9f5976dccc3deb8da1fd94ee12f7f377d0b49bf2e/trenchfoot-0.2.3.tar.gz", hash = "sha256:15b771a60400c7a6b9524ae29bb68234bb30856108791ddbf932df8ab38bbf1a", size = 6857352 }
+sdist = { url = "https://files.pythonhosted.org/packages/17/7c/97c852c63c2c20bcef7f5fcced337306bc454537920fc9342595db2dcf65/trenchfoot-0.2.7.tar.gz", hash = "sha256:4fc24ff024cbd24a55d11036c60f5e5ddda5a69d5731f9fcf0215503c7911a99", size = 6800199 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bf/c1/fd6f0a96b4ecc6928ebb88ca21721e28910d70c4063c273cc14ddb66870f/trenchfoot-0.2.3-py3-none-any.whl", hash = "sha256:b9f74f13393f2da692323a28d412c339d202eb972c1b5612666eace6d88307eb", size = 6916430 },
+    { url = "https://files.pythonhosted.org/packages/03/3a/4b33c2dc1ef36c0428f13706d40b6233aa316d181d0c8e4d3ee0377dba1b/trenchfoot-0.2.7-py3-none-any.whl", hash = "sha256:a7e52dc9274969303572832ad3fac9eef555796bbbf5d46e4c56281a76f1dc67", size = 6857495 },
 ]
 
 [[package]]

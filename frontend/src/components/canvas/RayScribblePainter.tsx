@@ -9,6 +9,8 @@ import { useProjectStore } from '../../stores/projectStore'
 import { useLabelStore, type RayCarveConstraint, type RayInfo } from '../../stores/labelStore'
 import { useRayScribbleStore, type RayInfo as StoreRayInfo } from '../../stores/rayScribbleStore'
 import { useSimplePointCloudRaycast } from '../../hooks/usePointCloudBVH'
+import { useLocalSpacing } from '../../hooks/useLocalSpacing'
+import { useConstraintSync } from '../../hooks/useConstraintSync'
 
 const COLORS = {
   solid: '#3b82f6',
@@ -27,16 +29,22 @@ export function RayScribblePainter({ projectId }: RayScribblePainterProps) {
 
   const addConstraint = useLabelStore((s) => s.addConstraint)
   const constraints = useLabelStore((s) => s.getConstraints(projectId))
+  const { createConstraint: syncConstraint } = useConstraintSync(projectId)
 
   const emptyBandWidth = useRayScribbleStore((s) => s.emptyBandWidth)
   const surfaceBandWidth = useRayScribbleStore((s) => s.surfaceBandWidth)
   const backBufferWidth = useRayScribbleStore((s) => s.backBufferWidth)
+  const useAdaptiveBackBuffer = useRayScribbleStore((s) => s.useAdaptiveBackBuffer)
+  const backBufferCoefficient = useRayScribbleStore((s) => s.backBufferCoefficient)
   const isScribbling = useRayScribbleStore((s) => s.isScribbling)
   const currentStrokeRays = useRayScribbleStore((s) => s.currentStrokeRays)
   const startStroke = useRayScribbleStore((s) => s.startStroke)
   const addRayToStroke = useRayScribbleStore((s) => s.addRayToStroke)
   const endStroke = useRayScribbleStore((s) => s.endStroke)
   const cancelStroke = useRayScribbleStore((s) => s.cancelStroke)
+
+  // Local spacing computation for adaptive back buffer
+  const { isReady: spacingReady, globalMean, getSpacing } = useLocalSpacing(pointCloudPositions)
 
   const { camera, raycaster, pointer, gl } = useThree()
 
@@ -62,17 +70,31 @@ export function RayScribblePainter({ projectId }: RayScribblePainterProps) {
     const hit = raycast(ray)
 
     if (hit) {
+      // Look up local spacing for this point if adaptive mode is enabled
+      let localSpacing: number | undefined
+      if (useAdaptiveBackBuffer) {
+        if (spacingReady) {
+          // Use per-point spacing if available
+          localSpacing = getSpacing(hit.pointIndex) ?? undefined
+        } else if (globalMean !== null) {
+          // Fall back to global mean while computing
+          localSpacing = globalMean
+        }
+      }
+
       const rayInfo: StoreRayInfo = {
         origin: [ray.origin.x, ray.origin.y, ray.origin.z],
         direction: [ray.direction.x, ray.direction.y, ray.direction.z],
         hitDistance: hit.distance,
         surfaceNormal: undefined, // Could compute from nearby points
+        hitPointIndex: hit.pointIndex,
+        localSpacing,
       }
       return rayInfo
     }
 
     return null
-  }, [camera, pointer, raycaster, raycast, raycastReady])
+  }, [camera, pointer, raycaster, raycast, raycastReady, useAdaptiveBackBuffer, spacingReady, globalMean, getSpacing])
 
   // Update rays during scribbling
   useFrame(() => {
@@ -134,13 +156,17 @@ export function RayScribblePainter({ projectId }: RayScribblePainterProps) {
           direction: r.direction,
           hitDistance: r.hitDistance,
           surfaceNormal: r.surfaceNormal,
+          hitPointIndex: r.hitPointIndex,
+          localSpacing: r.localSpacing,
         })),
         emptyBandWidth,
         surfaceBandWidth,
         backBufferWidth,
+        backBufferCoefficient,
       }
 
       addConstraint(projectId, constraint)
+      syncConstraint(constraint)
     }
   }, [
     isScribbling,
@@ -149,7 +175,9 @@ export function RayScribblePainter({ projectId }: RayScribblePainterProps) {
     emptyBandWidth,
     surfaceBandWidth,
     backBufferWidth,
+    backBufferCoefficient,
     addConstraint,
+    syncConstraint,
     projectId,
   ])
 
@@ -208,6 +236,8 @@ export function RayScribblePainter({ projectId }: RayScribblePainterProps) {
         <RayStrokeVisualization
           rays={currentStrokeRays}
           emptyBandWidth={emptyBandWidth}
+          backBufferCoefficient={backBufferCoefficient}
+          backBufferWidth={backBufferWidth}
           color={color}
           opacity={0.5}
         />
@@ -219,6 +249,8 @@ export function RayScribblePainter({ projectId }: RayScribblePainterProps) {
           key={constraint.id}
           rays={constraint.rays}
           emptyBandWidth={constraint.emptyBandWidth}
+          backBufferCoefficient={constraint.backBufferCoefficient}
+          backBufferWidth={constraint.backBufferWidth}
           color={COLORS[constraint.sign]}
           opacity={0.3}
         />
@@ -230,6 +262,8 @@ export function RayScribblePainter({ projectId }: RayScribblePainterProps) {
 interface RayStrokeVisualizationProps {
   rays: (StoreRayInfo | RayInfo)[]
   emptyBandWidth: number
+  backBufferCoefficient: number
+  backBufferWidth: number
   color: string
   opacity: number
 }
@@ -237,6 +271,8 @@ interface RayStrokeVisualizationProps {
 function RayStrokeVisualization({
   rays,
   emptyBandWidth,
+  backBufferCoefficient,
+  backBufferWidth,
   color,
   opacity,
 }: RayStrokeVisualizationProps) {
@@ -244,7 +280,7 @@ function RayStrokeVisualization({
   const coneGeometry = useMemo(() => {
     if (rays.length === 0) return null
 
-    // For each ray, create a cone from origin to hit point - emptyBandWidth
+    // For each ray, create a cone from origin to hit point - bufferZone
     const positions: number[] = []
     const indices: number[] = []
 
@@ -255,8 +291,14 @@ function RayStrokeVisualization({
       const direction = new THREE.Vector3(...ray.direction).normalize()
       const hitDistance = ray.hitDistance
 
-      // Cone end point is hit - emptyBandWidth
-      const endDistance = Math.max(0.1, hitDistance - emptyBandWidth)
+      // Compute the actual buffer zone for this ray
+      // This matches the sampling logic in the backend
+      const bufferZone = ray.localSpacing != null
+        ? ray.localSpacing * backBufferCoefficient
+        : backBufferWidth
+
+      // Cone end point is hit - bufferZone (where empty samples actually stop)
+      const endDistance = Math.max(0.1, hitDistance - bufferZone)
       const endPoint = origin.clone().add(direction.clone().multiplyScalar(endDistance))
 
       // Cone radius increases with distance (like a flashlight beam)
@@ -307,7 +349,7 @@ function RayStrokeVisualization({
     geometry.computeVertexNormals()
 
     return geometry
-  }, [rays, emptyBandWidth])
+  }, [rays, emptyBandWidth, backBufferCoefficient, backBufferWidth])
 
   if (!coneGeometry) return null
 

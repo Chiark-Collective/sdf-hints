@@ -79,6 +79,8 @@ export interface RayInfo {
   direction: [number, number, number]
   hitDistance: number
   surfaceNormal?: [number, number, number]
+  hitPointIndex?: number    // Index into consolidated positions for spacing lookup
+  localSpacing?: number     // Local point spacing at hit point (k-NN mean distance)
 }
 
 export interface RayCarveConstraint extends BaseConstraint {
@@ -86,7 +88,8 @@ export interface RayCarveConstraint extends BaseConstraint {
   rays: RayInfo[]
   emptyBandWidth: number
   surfaceBandWidth: number
-  backBufferWidth: number  // Distance past hit to sample (0 = no bleed-through)
+  backBufferWidth: number         // Fixed distance past hit (fallback)
+  backBufferCoefficient: number   // Multiplier for per-ray localSpacing
 }
 
 export interface PocketConstraint extends BaseConstraint {
